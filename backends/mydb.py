@@ -1,5 +1,12 @@
 import bdb
 
+def line(frame):
+	return frame.f_lineno
+def filename(frame):
+	return bdb.Bdb().canonic(frame.f_code.co_filename)
+def function_name(frame):
+	return frame.f_code.co_name or "<unknown>"
+
 class MyDB(bdb.Bdb):
 
 	breakpoints = {}
@@ -51,8 +58,9 @@ class MyDB(bdb.Bdb):
 		if   s in ['c']: self.set_continue()
 		elif s in ['n']: self.set_next(frame)
 		elif s in ['b']:
-			self.parent.set_break(self.mainpyfile, int(args[0]))
-			# self.set_break
+			f, l = self.mainpyfile, int(args[0])
+			self.parent.set_break(f,l)
+			self.toggle_break(f,l)
 			self.wait_cmd(frame)
 		elif s in ['s']: self.set_step()
 		elif s in ['q']: self.set_quit()
@@ -114,9 +122,8 @@ class MyDB(bdb.Bdb):
 			return eval(expr, self.curframe.f_locals, self.curframe.f_globals)
 		except Exception as e:
 			return e
-def line(frame):
-	return frame.f_lineno
-def filename(frame):
-	return bdb.Bdb().canonic(frame.f_code.co_filename)
-def function_name(frame):
-	return frame.f_code.co_name or "<unknown>"
+	def toggle_break(self,filename,line):
+		if not filename in self.breakpoints: self.breakpoints.update({filename:[]})
+		bps = self.breakpoints[filename]
+		( bps.remove    if line in bps else  bps.append     )(line)
+		(self.set_break if line in bps else self.clear_break)(filename, line)

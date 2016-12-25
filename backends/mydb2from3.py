@@ -8,8 +8,7 @@ def outeval(instruction): return eval(instruction)
 
 class MyDB2from3():
 	def __init__(self):
-		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/mydb2.py"])#,universal_newlines=True,bufsize=1,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		print("pid",self.sp.pid)
+		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/mydb2.py"])
 		self.breakpoints = []
 		time.sleep(.2)
 		self.server = TCPServer(connect,5004)
@@ -17,10 +16,11 @@ class MyDB2from3():
 		self.server_thread = threading.Thread(target=self.server.loop)
 		self.server_thread.start()
 		time.sleep(.2)
-		self.proc        = TCPProcess(connect,5005)
-		self.set_break   = self.proc.set_break
-		self.clear_break = self.proc.clear_break
-		self.tryeval     = self.proc.tryeval
+		self.proc         = TCPProcess(connect,5005)
+		self.set_break    = self.proc.set_break
+		self.clear_break  = self.proc.clear_break
+		self.toggle_break = self.proc.toggle_break
+		self.tryeval      = self.proc.tryeval
 		print("fully connected")
 	def runscript(self, filename):
 		self.proc.set_breakpoints(self.breakpoints)

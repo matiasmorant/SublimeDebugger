@@ -5,6 +5,7 @@ from Debugger.backends import mydb
 import bdb
 from contextlib import contextmanager
 from time import sleep
+from copy import deepcopy
 
 breakpoints = {}
 expressions = []
@@ -32,7 +33,7 @@ class debugCommand(sublime_plugin.WindowCommand):
         print("Started Debugging")
         filename = bdb.Bdb().canonic(self.window.active_view().file_name())
         DB.parent = self
-        DB.breakpoints = breakpoints
+        DB.breakpoints = deepcopy(breakpoints)
         f = lambda: DB.runscript(filename)
         threading.Timer(.2,f).start()
     def show_empty_panel(self):
@@ -58,7 +59,7 @@ class debugCommand(sublime_plugin.WindowCommand):
         self.cmd = None
         return cmd
     def set_break(self, filename, line):
-        toggle_break(filename, line)
+        toggle_breakGUI(filename, line)
     def show_help(self, s):
         view = self.window.create_output_panel("help")
         view.run_command("fill_view",{'text': s})
@@ -70,16 +71,24 @@ class debugCommand(sublime_plugin.WindowCommand):
 
 class toggle_breakpointCommand(sublime_plugin.WindowCommand):
     def run(self):
-        toggle_break(self.window.active_view().file_name(), get_curline()+1)
+        filename, line = self.window.active_view().file_name(), get_curline()+1
+        toggle_breakGUI(filename, line)
+        toggle_breakDB(filename, line)
 
-def toggle_break(filename, line):
+def toggle_breakGUI(filename, line):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
     if not filename in breakpoints: breakpoints.update({filename:[]})
     bps = breakpoints[filename]
     (bps.remove   if line in bps else bps.append    )(line)
-    (DB.set_break if line in bps else DB.clear_break)(filename, line)
-    V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)    
+    V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
+
+def toggle_breakDB(filename,line):
+    DB.toggle_break(filename,line)
+
+# def update_breakDB(filename,line):
+#     bps = breakpoints[filename]
+#     (DB.set_break if line in bps else DB.clear_break)(filename, line)
 
 class toggle_watcherCommand(sublime_plugin.WindowCommand):    
     original_layout = None

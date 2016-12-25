@@ -16,6 +16,7 @@ class DebuggerParent():
 def set_breakpoints(bps          ): DB.breakpoints = bps
 def set_break      (filename,line): DB.set_break    (filename,line)
 def clear_break    (filename,line): DB.clear_break  (filename,line)
+def toggle_break   (filename,line): DB.toggle_break    (filename,line)
 def tryeval        (expr         ): return DB.tryeval(expr)
 def runscript      (filename     ): threading.Timer(.1, DB.runscript, args=[filename]).start()
 
