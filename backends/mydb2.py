@@ -124,63 +124,13 @@ def function_name(frame):
 	return frame.f_code.co_name or "<unknown>"
 
 ##############
-import socket
-import json
 import threading
 
-def connect(port):
-	print "connecting",port
-	TCP_IP, TCP_PORT = "127.0.0.1", port
-	s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind((TCP_IP,TCP_PORT))
-	s.listen(1)
-	conn, addr = s.accept()
-	s.close()
-	print "connected", addr
-	return conn
-
-def recv_message(conn, BUFFER_SIZE = 1024):
-	data = ''
-	while True:
-		message = conn.recv(BUFFER_SIZE)
-		data+=message
-		if not message or message.endswith('@.'): break
-	return data
-
-class TCPProcess(object):
-	def __init__(self, connect, port):
-		self.client_conn = connect(port)
-	def __getattr__(self,m):
-		def f(*args):
-			self.client_conn.send(m+"@"+json.dumps(args)+"@.")
-			ans,ex,_ = recv_message(self.client_conn).split('@')
-			return ans
-		return f 
-
-class TCPServer(object):
-	def __init__(self, connect, port):
-		self.client_conn = connect(port)
-	def __getitem__(self,m):
-		instruction, parameters , _ = m.split('@')
-		ret,ex = None,None
-		try                  : ret = eval(instruction)(*json.loads(parameters))
-		except Exception as e: ex  = e
-		return str(ret) +'@'+str(ex)+'@.'
-	def __call__(self):
-		msg = recv_message(self.client_conn)
-		ans = self[msg]
-		self.client_conn.send(ans)
-	def loop(self):
-		try:
-			while True: self()
-		except Exception as e:
-			print "connection down", e
-		self.client_conn.close()
+from comm_utils import TCPProcess,TCPServer, create_connection
 		
 class DebuggerParent():
 	def __init__(self):
-		self.proc      = TCPProcess(connect,5004)
+		self.proc      = TCPProcess(create_connection,5004)
 		self.get_cmd   = self.proc.get_cmd
 		self.set_break = self.proc.set_break
 		self.show_help = self.proc.show_help
@@ -198,4 +148,7 @@ DB = MyDB()
 print "debugger ready"
 DB.parent = DebuggerParent()
 print "parent ready"
-TCPServer(connect,5005).loop()
+def outeval(instruction): return eval(instruction)
+server=TCPServer(create_connection,5005)
+server.eval= outeval
+server.loop()
