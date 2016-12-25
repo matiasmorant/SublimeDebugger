@@ -3,21 +3,17 @@ import bdb
 class MyDB(bdb.Bdb):
 
 	breakpoints = {}
-	# def __init__(self,*args,**kwargs):
-	#	 super(MyDB,self).__init__(*args,**kwargs)
 	def user_call(self, frame, args):
 		"""This method is called when there is the remote possibility
 		that we ever need to stop in this function."""
 		if self._wait_for_mainpyfile:
 			return		
-		print("--call--")
+		print("--call--",function_name(frame), args)
 		if self.stop_here(frame):
-			print ("call", function_name(frame), args)
 			self.wait_cmd(frame)
 		self.stack, self.curidx = self.get_stack(frame, None)
 
 	def user_line(self, frame):
-		print ("user_line")
 		if self._wait_for_mainpyfile:
 			if (self.mainpyfile != filename(frame) or frame.f_lineno<= 0):
 				return
@@ -45,10 +41,13 @@ class MyDB(bdb.Bdb):
 
 	def wait_cmd(self,frame):
 		self.curframe = frame
-		cmd = self.parent.get_cmd(line(frame),frame.f_locals,frame.f_globals, filename(frame))
+		ls={k:str(v) for k,v in frame.f_locals.items()}
+		gs={k:str(v) for k,v in frame.f_globals.items()}
+		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
-		s,*args = cmd.split() or ['']
+		cmdl = (cmd.split() or [''])
+		s,args = cmdl[0], cmdl[1:]
 		if   s in ['c']: self.set_continue()
 		elif s in ['n']: self.set_next(frame)
 		elif s in ['b']:
