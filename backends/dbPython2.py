@@ -6,9 +6,9 @@ from Debugger.backends.comm_utils import TCPProcess,TCPServer, connect
 
 def outeval(instruction): return eval(instruction)
 
-class MyDB2from3():
+class DBPython2():
 	def __init__(self):
-		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/mydb2.py"])
+		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/dbpy2_server.py"])
 		self.breakpoints = []
 		time.sleep(.2)
 		self.server = TCPServer(connect,5004)
@@ -31,12 +31,9 @@ class MyDB2from3():
 	def get_parent(self):
 		return parent
 	def __del__(self):
-		print("__del__")
 		self.sp.kill()
 		self.sp.terminate()
-		print("waiting fon thread to join")
 		self.server_thread.join()
-		print("__del__ done")
 	parent = property(fset=set_parent, fget=get_parent)
 
 parent=None

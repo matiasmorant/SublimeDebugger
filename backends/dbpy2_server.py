@@ -1,4 +1,4 @@
-from mydb import MyDB
+from dbpy2 import MyDB
 
 ##############
 import threading

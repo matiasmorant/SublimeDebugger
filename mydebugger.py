@@ -1,7 +1,7 @@
 import sublime, sublime_plugin
 import threading
-from Debugger.backends import mydb2from3
-from Debugger.backends import mydb
+from Debugger.backends import dbPython2
+from Debugger.backends import dbPython3
 import bdb
 from contextlib import contextmanager
 from time import sleep
@@ -10,7 +10,7 @@ from copy import deepcopy
 breakpoints = {}
 expressions = []
 curlang = "Python2"
-DB = mydb2from3.MyDB2from3()
+DB = dbPython2.DBPython2()
 
 class languageCommand(sublime_plugin.WindowCommand):
     def run(self,lang):
@@ -19,8 +19,8 @@ class languageCommand(sublime_plugin.WindowCommand):
         print("language:",lang)
         if lang == curlang: return
         else: curlang = lang
-        DB = mydb2from3.MyDB2from3() if lang == "Python2" else\
-             mydb      .MyDB      () if lang == "Python3" else\
+        DB = dbPython2.DBPython2() if lang == "Python2" else\
+             dbPython3.DBPython3() if lang == "Python3" else\
              None
     def is_checked(self,lang):
         return lang==curlang
