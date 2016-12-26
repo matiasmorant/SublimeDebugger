@@ -6,7 +6,9 @@ def filename(frame):
 	return bdb.Bdb().canonic(frame.f_code.co_filename)
 def function_name(frame):
 	return frame.f_code.co_name or "<unknown>"
-
+def is_range(s):
+	return False
+	
 class MyDB(bdb.Bdb):
 
 	breakpoints = {}
@@ -59,20 +61,20 @@ class MyDB(bdb.Bdb):
 		elif s in ['n']: self.set_next(frame)
 		elif s in ['b']:
 			f, l = self.mainpyfile, int(args[0])
-			# if len(args)>1:
-			# 	if args[1] == "c":
-			# 		self.parent.clear_break(f,l)
-			# 		self.clear_break(f,l)
-			# 	if is_range(args[1]):
-			# 		pass
-			# 	else :
-			# 		self.parent.set_break(f,l)
-			# 		self.set_break(f,l,cond=args[1])
-			# else:
-			# 	self.parent.set_break(f,l)
-			# 	self.set_break(f,l)
-			self.parent.set_break(f,l)
-			self.toggle_break(f,l)
+			if len(args)>1:
+				if args[1] == "c":
+					self.parent.clear_break(f,l)
+					self.clear_break(f,l)
+				elif is_range(args[1]):
+					pass
+				else :
+					self.parent.set_break(f,l)
+					self.set_break(f,l,cond=args[1])
+			else:
+				self.parent.set_break(f,l)
+				self.set_break(f,l)
+			# self.parent.toggle_break(f,l)
+			# self.toggle_break(f,l)
 			self.wait_cmd(frame)
 		elif s in ['s']: self.set_step()
 		elif s in ['q']: self.set_quit()
@@ -91,21 +93,21 @@ class MyDB(bdb.Bdb):
 	def show_help(self):
 		self.parent.show_help("""
 			Commands  Description
-			c         Continue execution, only stop when a breakpoint is encountered.
-			n         Continue execution until the next line in the current function
-                      is reached or it returns.
-			b [LINE]  Toggle break at LINE in the current file.
-			s         Execute the current line, stop at the first possible occasion
-                      (either in a function that is called or in the current
-                      function).
-			q         Quit the debugger.
-			r         Continue execution until the current function returns.
-			u         Without argument, continue execution until the line with a
-                      number greater than the current one is reached.  Also stop when
-                      the current frame returns.
-			o         Move the current frame one level up in the stack trace (to an older frame).
-			i         Move the current frame one level down in the stack trace (to a newer frame).
-			h         Show this help.
+			c                Continue execution, only stop when a breakpoint is encountered.
+			n                Continue execution until the next line in the current function is reached or
+			                 it returns.
+			b LINE[ COND|c]  Set break at LINE in the current file. If a COND expression is supplied, the
+			                 debugger stops at LINE only when COND evaluates to True. If letter c appears
+			                 after LINE, the breakpoint is cleared.
+			s                Execute the current line, stop at the first possible occasion (either in a
+			                 function that is called or in the current function).
+			q                Quit the debugger.
+			r                Continue execution until the current function returns.
+			u                Continue execution until the line with a number greater than the current one
+			                 is reached.  Also stop when the current frame returns.
+			o                Move the current frame one level up in the stack trace (to an older frame).
+			i                Move the current frame one level down in the stack trace (to a newer frame).
+			h                Show this help.
 
 			If no command is given, the previous command is repeated.
 			""")

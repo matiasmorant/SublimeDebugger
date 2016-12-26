@@ -38,7 +38,9 @@ class DBPython2():
 
 parent=None
 
-def get_cmd  (line,locals,globals,filename): return parent.get_cmd  (line,locals,globals,filename)
-def set_break(filename,line               ): parent.set_break(filename,line)
-def show_help(s                           ): parent.show_help(s)
-def finished (                            ): parent.finished ()
+def get_cmd     (line,locals,globals,filename): return parent.get_cmd (line,locals,globals,filename)
+def set_break   (filename,line               ): parent.set_break      (filename,line)
+def clear_break (filename,line               ): parent.clear_break    (filename,line)
+def toggle_break(filename,line               ): parent.toggle_break   (filename,line)
+def show_help   (s                           ): parent.show_help      (s)
+def finished    (                            ): parent.finished       ()
