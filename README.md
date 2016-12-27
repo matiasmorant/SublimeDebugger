@@ -2,5 +2,6 @@
 
 ##TODO
 
-* setting/viewing bps in sublime (bps in watcher)?
-* multifile
+* configuring breakpoints from Breakpoints Watcher
+* multifile support
+* test on windows

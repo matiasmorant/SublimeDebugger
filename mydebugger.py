@@ -89,6 +89,7 @@ def set_breakGUI(filename, line, bpinfo):
     if not line in bps: bps.update({line:{}})
     bps[line] = bpinfo
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
+    fill_view("Breakpoints", breakpoints_content())
 
 def clear_breakGUI(filename, line):
     global breakpoints
@@ -97,6 +98,7 @@ def clear_breakGUI(filename, line):
     bps = breakpoints[filename]
     if line in bps: bps.pop(line)
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
+    fill_view("Breakpoints", breakpoints_content())
 
 def toggle_breakGUI(filename, line):
     global breakpoints
@@ -105,6 +107,7 @@ def toggle_breakGUI(filename, line):
     bps = breakpoints[filename]
     bps.pop(line) if line in bps else bps.update({line:{}})
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
+    fill_view("Breakpoints", breakpoints_content())
 
 def toggle_breakDB(filename,line):
     DB.toggle_break(filename,line)
@@ -119,12 +122,17 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
         if get_view("Variables") or get_view("Expression"):
             close_view("Variables")
             close_view("Expression")
+            close_view("Breakpoints")
         else:
             groups = self.window.num_groups()
             act_gr = self.window.active_group()
             cells, rows, cols = map(self.window.get_layout().__getitem__, ['cells','rows','cols'])
-            new_layout ={'cells': cells+[[len(cols)-1,0,len(cols),len(rows)],[len(cols)-1,len(rows),len(cols),len(rows)-1]],
-                         'rows' : rows+[.8],
+            new_layout ={'cells': cells+[
+                                            [len(cols)-1,0          ,len(cols),len(rows)  ],
+                                            [len(cols)-1,len(rows)  ,len(cols),len(rows)+1],
+                                            [len(cols)-1,len(rows)+1,len(cols),1.         ]
+                                        ],
+                         'rows' : rows+[.6,.8],
                          'cols' : [.8*col for col in cols]+[1.]}
             self.window.set_layout(new_layout)
             self.window.focus_group(groups)
@@ -135,6 +143,11 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
             self.window.focus_group(groups+1)
             f = self.window.new_file()
             f.set_name("Expression")
+            f.run_command("fill_view",{'text':''})
+            f.run_command("toggle_setting",{"setting":"word_wrap"})
+            self.window.focus_group(groups+2)
+            f = self.window.new_file()
+            f.set_name("Breakpoints")
             f.run_command("fill_view",{'text':''})
             f.run_command("toggle_setting",{"setting":"word_wrap"})
             self.window.focus_group(act_gr)
@@ -201,6 +214,26 @@ def tryeval(expr,globals,locals):
         return eval(expr,globals,locals)
     except Exception as e:
         return e
+
+def breakpoints_content():
+    def ran_to_str(r):
+        try:
+            s=':'.join(['' if n is None else str(n) for n in r])
+            print(s)
+            return s
+        except:
+            return None
+    def bp_to_str(bp,maxlen=0):
+        k,v = bp
+        return str(k)+' '*(maxlen-len(str(k)))+' ┃ '+(v.get("cond") or ran_to_str(v.get("range")) or '')
+    def fbps_to_str(fbps):
+        f,bps = fbps
+        # print(bps,list(map(str,bps.keys())), list(map(len, map(str,bps.keys()) )))
+        try   : 
+            maxlen = max(map(len, map(str,bps.keys()) ))
+        except: maxlen = 0
+        return f+'\n'+'\n'.join([ bp_to_str(bp,maxlen=maxlen) for bp in bps.items() ])
+    return '\n'.join(map(fbps_to_str, breakpoints.items()))
 
 def expression_content():
     if expressions:
