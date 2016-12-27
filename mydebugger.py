@@ -37,13 +37,14 @@ class debugCommand(sublime_plugin.WindowCommand):
         f = lambda: DB.runscript(filename)
         threading.Timer(.2,f).start()
     def show_empty_panel(self):
-        self.window.show_input_panel("command (type h for help)","",self.success, self.cancel, self.open)
+        self.window.show_input_panel("command (type h for help)","",self.success, self.open,self.cancel)
     def success(self,s):
         self.cmd_status = "success"
         self.cmd = s
-    def cancel(self,s):
+    def cancel(self):
         self.cmd_status = "cancel"
-    def open(self):
+        self.show_empty_panel()
+    def open(self,s):
         self.cmd_status = "open"
     def get_cmd(self,line,locals,globals,filename):
         global expressions
