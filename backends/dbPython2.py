@@ -9,7 +9,7 @@ def outeval(instruction): return eval(instruction)
 class DBPython2():
 	def __init__(self):
 		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/dbpy2_server.py"])
-		self.breakpoints = []
+		self.breakpoints = {}
 		time.sleep(.2)
 		self.server = TCPServer(connect,5004)
 		self.server.eval= outeval
@@ -23,6 +23,7 @@ class DBPython2():
 		self.tryeval      = self.proc.tryeval
 		print("fully connected")
 	def runscript(self, filename):
+		print ("runscript")
 		self.proc.set_breakpoints(self.breakpoints)
 		self.proc.runscript(filename)
 	def set_parent(self,p):
@@ -39,7 +40,7 @@ class DBPython2():
 parent=None
 
 def get_cmd     (line,locals,globals,filename): return parent.get_cmd (line,locals,globals,filename)
-def set_break   (filename,line               ): parent.set_break      (filename,line)
+def set_break   (filename,line, bpinfo       ): parent.set_break      (filename,line,bpinfo)
 def clear_break (filename,line               ): parent.clear_break    (filename,line)
 def toggle_break(filename,line               ): parent.toggle_break   (filename,line)
 def show_help   (s                           ): parent.show_help      (s)

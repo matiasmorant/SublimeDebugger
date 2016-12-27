@@ -58,8 +58,9 @@ class debugCommand(sublime_plugin.WindowCommand):
         self.cmd_status = None
         self.cmd = None
         return cmd
-    def set_break(self, filename, line):
-        set_breakGUI(filename, line)
+    def set_break(self, filename, line, bpinfo):
+        print("set_break", filename, line, bpinfo)
+        set_breakGUI(filename, line, bpinfo)
     def clear_break(self, filename, line):
         clear_breakGUI(filename, line)
     def toggle_break(self, filename, line):
@@ -79,28 +80,29 @@ class toggle_breakpointCommand(sublime_plugin.WindowCommand):
         toggle_breakGUI(filename, line)
         toggle_breakDB(filename, line)
 
-def set_breakGUI(filename, line):
+def set_breakGUI(filename, line, bpinfo):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:[]})
+    if not filename in breakpoints: breakpoints.update({filename:{}})
     bps = breakpoints[filename]
-    if not line in bps: bps.append(line)
+    if not line in bps: bps.update({line:{}})
+    bps[line] = bpinfo
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
 
 def clear_breakGUI(filename, line):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:[]})
+    if not filename in breakpoints: breakpoints.update({filename:{}})
     bps = breakpoints[filename]
-    if line in bps: bps.remove(line)
+    if line in bps: bps.pop(line)
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
 
 def toggle_breakGUI(filename, line):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:[]})
+    if not filename in breakpoints: breakpoints.update({filename:{}})
     bps = breakpoints[filename]
-    (bps.remove   if line in bps else bps.append    )(line)
+    bps.pop(line) if line in bps else bps.update({line:{}})
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
 
 def toggle_breakDB(filename,line):
