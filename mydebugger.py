@@ -54,7 +54,6 @@ class debugCommand(sublime_plugin.WindowCommand):
         self.show_empty_panel()
         with highlight(filename,line):
             while not self.cmd_status == "success": sleep(.1)
-        sublime.status_message("received cmd: "+self.cmd)
         cmd = self.cmd                
         self.cmd_status = None
         self.cmd = None
@@ -72,6 +71,10 @@ class debugCommand(sublime_plugin.WindowCommand):
         self.window.run_command("show_panel",{"panel": "output.help"})
         p = self.window.active_panel()
         while self.window.active_panel()==p:pass
+    def show_exception(self,s):
+        self.window.set_status_bar_visible(True)
+        sublime.status_message("EXCEPTION: "+s)
+
     def finished(self):
         pass
 
@@ -165,12 +168,15 @@ class fill_viewCommand(sublime_plugin.TextCommand):
 
 @contextmanager
 def highlight(filename,line):
-    v = sublime.active_window().find_open_file(filename)
-    if v:
-        v.add_regions("0",[get_line(v,line-1)],"comment","bookmark")
+    w = sublime.active_window()
+    v = w.find_open_file(filename)
+    if not v:
+        v= w.open_file(filename)
+    w.focus_view(v)
+    v.add_regions("0",[get_line(v,line-1)],"comment","bookmark")
+    v.show(v.text_point(line,0)) #focus line beginning
     yield
-    if v:
-        v.add_regions("0",[                 ],"comment","bookmark")
+    v.add_regions("0",[                 ],"comment","bookmark")
 
 def get_line(v, n):
     return v.line(v.text_point(n,0))
@@ -249,6 +255,7 @@ def parse_expressions(txt):
 
 def dict_table(d):
     ks, vs = d.keys(), d.values()
-    maxlen = max(map(len, ks))
+    try   : maxlen = max(map(len, ks))
+    except: maxlen = 0
     ks =[k+' '*(maxlen-len(k)) for k in ks]
     return '\n'.join([k+' ┃ '+str(v) for k,v in sorted(zip(ks,vs))])

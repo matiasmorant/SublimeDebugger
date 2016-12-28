@@ -7,13 +7,14 @@ from comm_utils import TCPProcess,TCPServer, create_connection
 		
 class DebuggerParent():
 	def __init__(self):
-		self.proc         = TCPProcess(create_connection,5004)
-		self.get_cmd      = self.proc.get_cmd
-		self.set_break    = self.proc.set_break
-		self.clear_break  = self.proc.clear_break
-		self.toggle_break = self.proc.toggle_break
-		self.show_help    = self.proc.show_help
-		self.finished     = self.proc.finished
+		self.proc           = TCPProcess(create_connection,5004)
+		self.get_cmd        = self.proc.get_cmd
+		self.set_break      = self.proc.set_break
+		self.clear_break    = self.proc.clear_break
+		self.toggle_break   = self.proc.toggle_break
+		self.show_help      = self.proc.show_help
+		self.show_exception = self.proc.show_exception
+		self.finished       = self.proc.finished
 
 def set_breakpoints(bps          ):
 	for ldict in bps.values():

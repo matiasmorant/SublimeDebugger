@@ -1,5 +1,6 @@
 import socket
 import json
+import traceback
 
 def create_connection(port):
 	print ("connecting",port)
@@ -43,7 +44,7 @@ def recv_message(conn, BUFFER_SIZE = 1024):
 	while True:
 		message = conn.recv(BUFFER_SIZE).decode("UTF-8")
 		data+=message
-		if not message or message.endswith('@.'): break
+		if not message or message.endswith('$@#.'): break
 	return data
 
 class TCPProcess(object):
@@ -51,21 +52,20 @@ class TCPProcess(object):
 		self.client_conn = connect(port)
 	def __getattr__(self,m):
 		def f(*args):
-			self.client_conn.send((m+"@"+json.dumps(args)+"@.").encode("UTF-8"))
-			ans,ex,_ = recv_message(self.client_conn).split('@')
+			self.client_conn.send((m+"$@#"+json.dumps(args)+"$@#.").encode("UTF-8"))
+			ans,ex,_ = recv_message(self.client_conn).split('$@#')
 			return ans
 		return f
 
 class TCPServer(object):
 	def __init__(self,connect, port):
-		print("server __init__",port)
 		self.client_conn = connect(port)
 	def __getitem__(self,m):
-		instruction, parameters , _ = m.split('@')
+		instruction, parameters , _ = m.split('$@#')
 		ret,ex = None,None
 		try                  : ret = self.eval(instruction)(*json.loads(parameters))
 		except Exception as e: ex  = e
-		return str(ret) +'@'+str(ex)+'@.'
+		return str(ret) +'$@#'+str(ex)+'$@#.'
 	def __call__(self):
 		msg = recv_message(self.client_conn)
 		ans = self[msg]
@@ -74,5 +74,6 @@ class TCPServer(object):
 		try:
 			while True: self()
 		except Exception as e:
+			traceback.print_exc()
 			print ("connection down",e)
 		self.client_conn.close()

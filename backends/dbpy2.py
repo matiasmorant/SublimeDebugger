@@ -1,5 +1,8 @@
 import bdb
 import re
+import traceback
+import sys
+import os
 
 def line(frame):
 	return frame.f_lineno
@@ -30,9 +33,9 @@ class MyDB(bdb.Bdb):
 		if self._wait_for_mainpyfile:
 			return		
 		print("--call--",function_name(frame), args)
+		self.stack, self.curidx = self.get_stack(frame, None)
 		if self.stop_here(frame):
 			self.wait_cmd(frame)
-		self.stack, self.curidx = self.get_stack(frame, None)
 
 	def user_line(self, frame):
 		if self._wait_for_mainpyfile:
@@ -57,7 +60,7 @@ class MyDB(bdb.Bdb):
 			return		
 		print("--exception--")
 		print("exception in", function_name(frame), exception)
-		self.stack, self.curidx = self.get_stack(frame, exception)
+		self.stack, self.curidx = self.get_stack(frame, exception[2])
 		self.wait_cmd(frame) # continue
 
 	def wait_cmd(self,frame):
@@ -140,7 +143,6 @@ class MyDB(bdb.Bdb):
 		# events depends on python version). So we take special measures to
 		# avoid stopping before we reach the main script (see user_line and
 		# user_call for details).
-		self._wait_for_mainpyfile = True
 		self.mainpyfile = self.canonic(filename)
 		self._user_requested_quit = False
 		with open(filename, "rb") as fp:
@@ -150,7 +152,26 @@ class MyDB(bdb.Bdb):
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				self.set_break(filenam, l,bpinfo)
-		self.run(statement)
+		# Replace pdb's dir with script's dir in front of module search path.
+		sys.path[0] = os.path.dirname(self.mainpyfile)
+		try :
+			self._wait_for_mainpyfile = True
+			self.run(statement)
+		except SyntaxError:
+			print "SyntaxError"
+			traceback.print_exc()
+			self.parent.show_exception("syntax error")
+		except:
+			traceback.print_exc()
+			print "Uncaught exception. Entering post mortem debugging"
+			typ, val, t = sys.exc_info()
+			print "typ:",typ
+			print "val:",val
+			print "t:",t
+			print "strval:",str(val)
+			self.parent.show_exception(str(val))
+			self.stack, self.curidx = self.get_stack(None, t)
+			self.wait_cmd(self.stack[self.curidx][0])			
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				if "hits" in bpinfo:
