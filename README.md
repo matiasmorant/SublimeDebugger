@@ -3,6 +3,8 @@
 This is a graphical debugger for Sublime Text 3.
 If this saves you some time with those nasty bugs of yours, feel free to buy me a coffee at PayPal.
 
+![screenshot](http://i.imgur.com/W6KpC35.png)
+
 ## Features
 
 * Setting breakpoints, using either keyboard shortcuts or the console.
