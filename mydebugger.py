@@ -1,7 +1,7 @@
 import sublime, sublime_plugin
 import threading
-from Debugger.backends import dbPython2
-from Debugger.backends import dbPython3
+from SublimeDebugger.backends import dbPython2
+from SublimeDebugger.backends import dbPython3
 import bdb
 from contextlib import contextmanager
 from time import sleep
@@ -166,9 +166,9 @@ class refresh_expressionsCommand(sublime_plugin.TextCommand):
             fill_view("Expression", expression_content())
 
 class fill_viewCommand(sublime_plugin.TextCommand):
-     def run(self, edit,**kwargs):
-         self.view.replace(edit, sublime.Region(0,self.view.size()), kwargs['text'])
-
+    def run(self, edit,**kwargs):
+        self.view.replace(edit, sublime.Region(0,self.view.size()), kwargs['text'])
+        self.view.show(0)
 @contextmanager
 def highlight(filename,line):
     w = sublime.active_window()

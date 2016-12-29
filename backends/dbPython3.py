@@ -1,5 +1,9 @@
 import bdb
 import re
+import traceback
+import sys
+import os
+import inspect
 
 def line(frame):
 	return frame.f_lineno
@@ -31,9 +35,9 @@ class DBPython3(bdb.Bdb):
 		if self._wait_for_mainpyfile:
 			return		
 		print("--call--",function_name(frame), args)
+		self.stack, self.curidx = self.get_stack(frame, None)
 		if self.stop_here(frame):
 			self.wait_cmd(frame)
-		self.stack, self.curidx = self.get_stack(frame, None)
 
 	def user_line(self, frame):
 		if self._wait_for_mainpyfile:
@@ -58,13 +62,13 @@ class DBPython3(bdb.Bdb):
 			return		
 		print("--exception--")
 		print("exception in", function_name(frame), exception)
-		self.stack, self.curidx = self.get_stack(frame, exception)
+		self.stack, self.curidx = self.get_stack(frame, exception[2])
 		self.wait_cmd(frame) # continue
 
 	def wait_cmd(self,frame):
 		self.curframe = frame
-		ls={k:str(v) for k,v in frame.f_locals.items()}
-		gs={k:str(v) for k,v in frame.f_globals.items()}
+		ls={k:str(v) for k,v in self.filter_vars(frame.f_locals).items()}
+		gs={k:str(v) for k,v in self.filter_vars(frame.f_globals).items()}
 		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
@@ -138,12 +142,24 @@ class DBPython3(bdb.Bdb):
 			If no command is given, the previous command is repeated.
 			""")
 	def runscript(self,filename):
+		# The script has to run in __main__ namespace (or imports from
+		# __main__ will break).
+		#
+		# So we clear up the __main__ and set several special variables
+		# (this gets rid of pdb's globals and cleans old variables on restarts).
+		import __main__
+		__main__.__dict__
+		main_copy = __main__.__dict__.copy()
+		__main__.__dict__.clear()
+		__main__.__dict__.update({	"__name__"    : "__main__",
+									"__file__"    : filename,
+									"__builtins__": __builtins__,
+								})
 		# When bdb sets tracing, a number of call and line events happens
 		# BEFORE debugger even reaches user's code (and the exact sequence of
 		# events depends on python version). So we take special measures to
 		# avoid stopping before we reach the main script (see user_line and
 		# user_call for details).
-		self._wait_for_mainpyfile = True
 		self.mainpyfile = self.canonic(filename)
 		self._user_requested_quit = False
 		with open(filename, "rb") as fp:
@@ -153,12 +169,29 @@ class DBPython3(bdb.Bdb):
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				self.set_break(filenam, l,bpinfo)
-		self.run(statement)
+		# Replace pdb's dir with script's dir in front of module search path.
+		sys.path[0] = os.path.dirname(self.mainpyfile)
+		try :
+			self._wait_for_mainpyfile = True
+			self.run(statement)
+		except SyntaxError:
+			print ("SyntaxError")
+			traceback.print_exc()
+			self.parent.show_exception("syntax error")
+		except:
+			traceback.print_exc()
+			print ("Uncaught exception. Entering post mortem debugging")
+			typ, val, t = sys.exc_info()
+			self.parent.show_exception(str(val))
+			self.stack, self.curidx = self.get_stack(None, t)
+			self.wait_cmd(self.stack[self.curidx][0])			
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				if "hits" in bpinfo:
 					bpinfo["hits"]=0
 		self.parent.finished()
+		__main__.__dict__.clear()
+		__main__.__dict__.update(main_copy)
 	def tryeval(self,expr):
 		try:
 			return eval(expr, self.curframe.f_locals, self.curframe.f_globals)
@@ -187,3 +220,10 @@ class DBPython3(bdb.Bdb):
 		if not filename in self.breakpoints: self.breakpoints.update({filename:{}})
 		bps = self.breakpoints[filename]
 		if line in bps: bps.pop(line)
+	def filter_vars(self, d):
+		# 		sf = os.path.dirname(os.path.abspath(inspect.getsourcefile(v)))
+		# try:
+		# 	d.pop("__builtins__") # this messes up things (not eval defined): copy d first
+		# except:
+		# 	pass
+		return d

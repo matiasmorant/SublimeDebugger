@@ -27,9 +27,8 @@ def n_in_range(n,ran):
 	return start <= n and ((not end) or n<end) and (n-start)%step == 0
 
 class MyDB(bdb.Bdb):
+
 	breakpoints = {}
-	# def __init__(self):
-	# 	bdb.Bdb.__init__(self, skip=[__file__,os.path.dirname(__file__)+"/dbpy2_server.py",bdb.__file__,"<string>"])
 	def user_call(self, frame, args):
 		"""This method is called when there is the remote possibility
 		that we ever need to stop in this function."""
@@ -174,12 +173,12 @@ class MyDB(bdb.Bdb):
 			self._wait_for_mainpyfile = True
 			self.run(statement)
 		except SyntaxError:
-			print "SyntaxError"
+			print ("SyntaxError")
 			traceback.print_exc()
 			self.parent.show_exception("syntax error")
 		except:
 			traceback.print_exc()
-			print "Uncaught exception. Entering post mortem debugging"
+			print ("Uncaught exception. Entering post mortem debugging")
 			typ, val, t = sys.exc_info()
 			self.parent.show_exception(str(val))
 			self.stack, self.curidx = self.get_stack(None, t)

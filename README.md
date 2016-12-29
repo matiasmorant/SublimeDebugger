@@ -39,6 +39,7 @@ The Python3 backend (dbPython3.py) is the simpler one, take a look at that for g
 ##TODO
 
 * better exception handling
+* toggle special members 
 * configuring breakpoints from Breakpoints Watcher
 * multifile support
 * test on windows

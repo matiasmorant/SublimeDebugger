@@ -2,7 +2,7 @@ import threading
 import time
 import subprocess
 import os
-from Debugger.backends.comm_utils import TCPProcess,TCPServer, connect
+from SublimeDebugger.backends.comm_utils import TCPProcess,TCPServer, connect
 
 def outeval(instruction): return eval(instruction)
 
