@@ -19,28 +19,59 @@ If this saves you some time with those nasty bugs of yours, feel free to buy me 
 ## How to add support to your favourite Language
 
 You've got to write a backend for the debugger. They are located in the backends folder.
-Your backend should implement a class with the following methods:
+Your backend should implement a class with the following members (Which will be called by the frontend):
 
-* set_break
-* clear_break
-* runscript
+* set_break      (filename, line, bpinfo)
+ Is called by the frontend to set a breakpoint. bppinfo is a dict containing info about the breakpoint (backend dependant).
+* clear_break    (filename, line)
+ Is called by the frontend to clear a breakpoint.
+* toggle_break   (filename, line)
+ Is called by the frontend to toggle a breakpoint.
+* tryeval        (expr)
+ Is called by the frontend to evaluate an expression. It is needed to fill the Expression Watcher. Should return the result of the evaluated expression in the current context.
+* runscript      (filename)
+ Is called by the frontend to start debugging a program.
+* breakpoints
+ A dict of breakpoints. The structure of the dict is the following:
+ {
+  filename1:
+  {
+   line1: bpinfo1,
+   line2: bpinfo2,
+   line3: bpinfo3,
+   etc..
+  },
+  filename2:
+   etc..
+ }
+where each bpinfo is a dict with backend dependant content.
+* parent
+ An member that will be set by the frontend, it will have the methods mentioned next.
 
-These will be called by the frontend. Additionally, the following methods of the frontend should be called by your backend when relevant:
+Additionally, the following methods of the frontend should be called by your backend when relevant (accessed through the *parent* member of your backend):
 
-* set_break
-* clear_break
+* get_cmd(line,locals,globals,filename)
+ Request a command from the user.
+* set_break(filename,line,bpinfo)
+ Set a breakpoint in the Sublime GUI
+* clear_break(filename,line)
+ Clear a breakpoint of the Sublime GUI
+* toggle_break(filename,line)
+ Toggle a breakpoint in the Sublime GUI
+* show_help(help_str)
+ Show the help message *help_str* in Sublime
+* show_exception(message)
+ Show an exception *message* in Sublime
 
-Import the backend from mydebugger.py
-
-Add your language to Main.sublime-menu and to languageCommand in mydebugger.py
+Then import the backend from mydebugger.py. Add your language to Main.sublime-menu and to languageCommand in mydebugger.py
 
 The Python3 backend (dbPython3.py) is the simpler one, take a look at that for guidance. Also, contact me if you really mean to implement one, I'll help you so we can include it here afterwards. wvlia5@live.com.ar
 
 ##TODO
 
 * better exception handling
-* toggle special members 
-* configuring breakpoints from Breakpoints Watcher
+* toggle hide special members 
+* configuring breakpoints from Breakpoints Watcher?
 * multifile support
 * test on windows
 * context key bindings with filename?
