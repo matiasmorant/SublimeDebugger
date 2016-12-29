@@ -3,6 +3,7 @@ import re
 import traceback
 import sys
 import os
+import inspect
 
 def line(frame):
 	return frame.f_lineno
@@ -27,6 +28,8 @@ def n_in_range(n,ran):
 
 class MyDB(bdb.Bdb):
 	breakpoints = {}
+	# def __init__(self):
+	# 	bdb.Bdb.__init__(self, skip=[__file__,os.path.dirname(__file__)+"/dbpy2_server.py",bdb.__file__,"<string>"])
 	def user_call(self, frame, args):
 		"""This method is called when there is the remote possibility
 		that we ever need to stop in this function."""
@@ -65,8 +68,8 @@ class MyDB(bdb.Bdb):
 
 	def wait_cmd(self,frame):
 		self.curframe = frame
-		ls={k:str(v) for k,v in frame.f_locals.items()}
-		gs={k:str(v) for k,v in frame.f_globals.items()}
+		ls={k:str(v) for k,v in self.filter_vars(frame.f_locals).items()}
+		gs={k:str(v) for k,v in self.filter_vars(frame.f_globals).items()}
 		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
@@ -138,6 +141,19 @@ class MyDB(bdb.Bdb):
 			If no command is given, the previous command is repeated.
 			""")
 	def runscript(self,filename):
+		# The script has to run in __main__ namespace (or imports from
+		# __main__ will break).
+		#
+		# So we clear up the __main__ and set several special variables
+		# (this gets rid of pdb's globals and cleans old variables on restarts).
+		import __main__
+		__main__.__dict__
+		main_copy = __main__.__dict__.copy()
+		__main__.__dict__.clear()
+		__main__.__dict__.update({	"__name__"    : "__main__",
+									"__file__"    : filename,
+									"__builtins__": __builtins__,
+								})
 		# When bdb sets tracing, a number of call and line events happens
 		# BEFORE debugger even reaches user's code (and the exact sequence of
 		# events depends on python version). So we take special measures to
@@ -165,10 +181,6 @@ class MyDB(bdb.Bdb):
 			traceback.print_exc()
 			print "Uncaught exception. Entering post mortem debugging"
 			typ, val, t = sys.exc_info()
-			print "typ:",typ
-			print "val:",val
-			print "t:",t
-			print "strval:",str(val)
 			self.parent.show_exception(str(val))
 			self.stack, self.curidx = self.get_stack(None, t)
 			self.wait_cmd(self.stack[self.curidx][0])			
@@ -177,6 +189,8 @@ class MyDB(bdb.Bdb):
 				if "hits" in bpinfo:
 					bpinfo["hits"]=0
 		self.parent.finished()
+		__main__.__dict__.clear()
+		__main__.__dict__.update(main_copy)
 	def tryeval(self,expr):
 		try:
 			return eval(expr, self.curframe.f_locals, self.curframe.f_globals)
@@ -205,3 +219,10 @@ class MyDB(bdb.Bdb):
 		if not filename in self.breakpoints: self.breakpoints.update({filename:{}})
 		bps = self.breakpoints[filename]
 		if line in bps: bps.pop(line)
+	def filter_vars(self, d):
+		# 		sf = os.path.dirname(os.path.abspath(inspect.getsourcefile(v)))
+		# try:
+		# 	d.pop("__builtins__") # this messes up things (not eval defined): copy d first
+		# except:
+		# 	pass
+		return d

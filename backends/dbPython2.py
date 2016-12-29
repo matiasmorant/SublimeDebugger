@@ -23,7 +23,6 @@ class DBPython2():
 		self.tryeval      = self.proc.tryeval
 		print("fully connected")
 	def runscript(self, filename):
-		print ("runscript")
 		self.proc.set_breakpoints(self.breakpoints)
 		self.proc.runscript(filename)
 	def set_parent(self,p):

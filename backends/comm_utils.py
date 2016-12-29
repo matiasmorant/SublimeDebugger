@@ -63,8 +63,11 @@ class TCPServer(object):
 	def __getitem__(self,m):
 		instruction, parameters , _ = m.split('$@#')
 		ret,ex = None,None
-		try                  : ret = self.eval(instruction)(*json.loads(parameters))
-		except Exception as e: ex  = e
+		try                  :
+			ret = self.eval(instruction)(*json.loads(parameters))
+		except Exception as e:
+			traceback.print_exc()
+			ex  = e
 		return str(ret) +'$@#'+str(ex)+'$@#.'
 	def __call__(self):
 		msg = recv_message(self.client_conn)

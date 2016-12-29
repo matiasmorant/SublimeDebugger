@@ -143,16 +143,19 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
             f.set_name("Variables")
             f.run_command("fill_view",{'text':''})
             f.run_command("toggle_setting",{"setting":"word_wrap"})
+            f.run_command("toggle_setting",{"setting":"gutter"})
             self.window.focus_group(groups+1)
             f = self.window.new_file()
             f.set_name("Expression")
             f.run_command("fill_view",{'text':''})
             f.run_command("toggle_setting",{"setting":"word_wrap"})
+            f.run_command("toggle_setting",{"setting":"gutter"})
             self.window.focus_group(groups+2)
             f = self.window.new_file()
             f.set_name("Breakpoints")
             f.run_command("fill_view",{'text':''})
             f.run_command("toggle_setting",{"setting":"word_wrap"})
+            f.run_command("toggle_setting",{"setting":"gutter"})
             self.window.focus_group(act_gr)
 
 class refresh_expressionsCommand(sublime_plugin.TextCommand):
@@ -258,4 +261,4 @@ def dict_table(d):
     try   : maxlen = max(map(len, ks))
     except: maxlen = 0
     ks =[k+' '*(maxlen-len(k)) for k in ks]
-    return '\n'.join([k+' ┃ '+str(v) for k,v in sorted(zip(ks,vs))])
+    return '\n'.join([k+' ┃ '+str(v).replace("\n", "\n"+" "*maxlen+' ┃ ') for k,v in sorted(zip(ks,vs))])
