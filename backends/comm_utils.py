@@ -47,9 +47,9 @@ def recv_message(conn, BUFFER_SIZE = 1024):
 		if not message or message.endswith('$@#.'): break
 	return data
 
-class TCPProcess(object):
-	def __init__(self, connect,port):
-		self.client_conn = connect(port)
+class TCPClient(object):
+	def __init__(self, port, create= False):
+		self.client_conn = (create_connection if create else connect)(port)
 	def __getattr__(self,m):
 		def f(*args):
 			self.client_conn.send((m+"$@#"+json.dumps(args)+"$@#.").encode("UTF-8"))
@@ -58,13 +58,13 @@ class TCPProcess(object):
 		return f
 
 class TCPServer(object):
-	def __init__(self,connect, port):
-		self.client_conn = connect(port)
+	def __init__(self, port , create=False):
+		self.client_conn = (create_connection if create else connect)(port)
 	def __getitem__(self,m):
 		instruction, parameters , _ = m.split('$@#')
 		ret,ex = None,None
 		try                  :
-			ret = self.eval(instruction)(*json.loads(parameters))
+			ret = eval("self."+instruction)(*json.loads(parameters))
 		except Exception as e:
 			traceback.print_exc()
 			ex  = e

@@ -3,38 +3,26 @@ from dbpy2 import MyDB
 ##############
 import threading
 
-from comm_utils import TCPProcess,TCPServer, create_connection
-		
-class DebuggerParent():
-	def __init__(self):
-		self.proc           = TCPProcess(create_connection,5004)
-		self.get_cmd        = self.proc.get_cmd
-		self.set_break      = self.proc.set_break
-		self.clear_break    = self.proc.clear_break
-		self.toggle_break   = self.proc.toggle_break
-		self.show_help      = self.proc.show_help
-		self.show_exception = self.proc.show_exception
-		self.finished       = self.proc.finished
+from comm_utils import TCPClient,TCPServer
 
-def set_breakpoints(bps          ):
-	for ldict in bps.values():
-		for k in ldict.keys():
-			ldict[int(k)] = ldict[k]
-			ldict.pop(k)
-	DB.breakpoints = bps
-def set_break      (filename,line,bpinfo): DB.set_break    (filename,line,bpinfo)
-def clear_break    (filename,line       ): DB.clear_break  (filename,line)
-def toggle_break   (filename,line       ): DB.toggle_break (filename,line)
-def tryeval        (expr                ): return DB.tryeval(expr)
-def runscript      (filename            ): threading.Timer(.1, DB.runscript, args=[filename]).start()
+class DebuggerServer(TCPServer):
+	def set_breakpoints(self, bps          ):
+		for ldict in bps.values():
+			for k in ldict.keys():
+				ldict[int(k)] = ldict[k]
+				ldict.pop(k)
+		DB.breakpoints = bps
+	def set_break      (self, filename,line,bpinfo): DB.set_break    (filename,line,bpinfo)
+	def clear_break    (self, filename,line       ): DB.clear_break  (filename,line)
+	def toggle_break   (self, filename,line       ): DB.toggle_break (filename,line)
+	def tryeval        (self, expr                ): return DB.tryeval(expr)
+	def runscript      (self, filename            ): threading.Timer(.1, DB.runscript, args=[filename]).start()
 
 print "mydb2.py started"
 
 DB = MyDB()
 print "debugger ready"
-DB.parent = DebuggerParent()
+DB.parent = TCPClient(5004, create=True)
 print "parent ready"
-def outeval(instruction): return eval(instruction)
-server=TCPServer(create_connection,5005)
-server.eval= outeval
-server.loop()
+
+DebuggerServer(5005, create=True).loop()
