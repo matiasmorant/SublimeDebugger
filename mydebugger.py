@@ -128,10 +128,9 @@ def toggle_breakDB(filename,line):
 class toggle_watcherCommand(sublime_plugin.WindowCommand):    
     original_layout = None
     def run(self):
-        if get_view("Variables") or get_view("Expression"):
-            close_view("Variables")
-            close_view("Expression")
-            close_view("Breakpoints")
+        names= ["Variables","Expression","Breakpoints"]
+        if any(map(get_view,names)):
+            for name in names: close_view(name)
         else:
             groups = self.window.num_groups()
             act_gr = self.window.active_group()
@@ -144,7 +143,7 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
                          'rows' : rows+[.6,.8],
                          'cols' : [.8*col for col in cols]+[1.]}
             self.window.set_layout(new_layout)
-            for i, name in enumerate(["Variables","Expression", "Breakpoints"]):
+            for i, name in enumerate(names):
                 self.window.focus_group(groups+i)
                 self.new_file(name)
             self.window.focus_group(act_gr)
@@ -193,7 +192,7 @@ def get_view_content(name):
 def fill_view(name,content):
     view = get_view(name)
     if view: view.run_command("fill_view",{'text': content})
-
+    
 def close_view(name):
     W = sublime.active_window()
     old_view = W.active_view()

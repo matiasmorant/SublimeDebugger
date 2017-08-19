@@ -1,6 +1,6 @@
 [
 	{ "keys": ["ctrl+alt+d"], "command": "debug" },
-	{ "keys": ["ctrl+b"], "command": "toggle_breakpoint" },
+	{ "keys": ["ctrl+alt+b"], "command": "toggle_breakpoint" },
 	{ "keys": ["ctrl+alt+w"], "command": "toggle_watcher" },
 	{ "keys": ["ctrl+alt+r"], "command": "refresh_expressions" }
 ]
