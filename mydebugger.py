@@ -255,6 +255,7 @@ def parse_expressions(txt):
     return [l.split(' ┃ ')[0].strip() for l in txt.split('\n')] if txt else []
 
 def dict_table(d):
+    d = {k:v for k,v in d.items() if not k.endswith("__")} #filter special Python vars
     ks, vs = d.keys(), d.values()
     try   : maxlen = max(map(len, ks))
     except: maxlen = 0
