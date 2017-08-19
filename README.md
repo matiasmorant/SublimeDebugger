@@ -47,17 +47,19 @@ Your backend should implement a class with the following members (Which will be 
 
  A dict of breakpoints. The structure of the dict is the following:
  ```
+ 
  {
-  filename1:
-  {
-   line1: bpinfo1,
-   line2: bpinfo2,
-   line3: bpinfo3,
-   etc..
-  },
-  filename2:
-   etc..
+	filename1:
+	{
+		line1: bpinfo1,
+		line2: bpinfo2,
+		line3: bpinfo3,
+		etc..
+	},
+	filename2:
+	etc..
  }
+
  ```
 where each bpinfo is a dict with backend dependant content.
 
