@@ -24,6 +24,7 @@ class languageCommand(sublime_plugin.WindowCommand):
              None
     def is_checked(self,lang):
         return lang==curlang
+
 class debugCommand(sublime_plugin.WindowCommand):
     input_panel  = None
     cmd_status = None    
@@ -94,33 +95,28 @@ class toggle_breakpointCommand(sublime_plugin.WindowCommand):
         toggle_breakGUI(filename, line)
         toggle_breakDB(filename, line)
 
-def set_breakGUI(filename, line, bpinfo):
+@contextmanager
+def bp_manager(filename):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
     if not filename in breakpoints: breakpoints.update({filename:{}})
     bps = breakpoints[filename]
-    if not line in bps: bps.update({line:{}})
-    bps[line] = bpinfo
+    yield bps
     V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
     fill_view("Breakpoints", breakpoints_content())
+
+def set_breakGUI(filename, line, bpinfo):
+    with bp_manager(filename) as bps:
+        if not line in bps: bps.update({line:{}})
+        bps[line] = bpinfo
 
 def clear_breakGUI(filename, line):
-    global breakpoints
-    V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:{}})
-    bps = breakpoints[filename]
-    if line in bps: bps.pop(line)
-    V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
-    fill_view("Breakpoints", breakpoints_content())
+    with bp_manager(filename) as bps:
+        if line in bps: bps.pop(line)
 
 def toggle_breakGUI(filename, line):
-    global breakpoints
-    V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:{}})
-    bps = breakpoints[filename]
-    bps.pop(line) if line in bps else bps.update({line:{}})
-    V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
-    fill_view("Breakpoints", breakpoints_content())
+    with bp_manager(filename) as bps:
+        bps.pop(line) if line in bps else bps.update({line:{}})
 
 def toggle_breakDB(filename,line):
     DB.toggle_break(filename,line)
@@ -148,25 +144,16 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
                          'rows' : rows+[.6,.8],
                          'cols' : [.8*col for col in cols]+[1.]}
             self.window.set_layout(new_layout)
-            self.window.focus_group(groups)
-            f = self.window.new_file()
-            f.set_name("Variables")
-            f.run_command("fill_view",{'text':''})
-            f.run_command("toggle_setting",{"setting":"word_wrap"})
-            f.run_command("toggle_setting",{"setting":"gutter"})
-            self.window.focus_group(groups+1)
-            f = self.window.new_file()
-            f.set_name("Expression")
-            f.run_command("fill_view",{'text':''})
-            f.run_command("toggle_setting",{"setting":"word_wrap"})
-            f.run_command("toggle_setting",{"setting":"gutter"})
-            self.window.focus_group(groups+2)
-            f = self.window.new_file()
-            f.set_name("Breakpoints")
-            f.run_command("fill_view",{'text':''})
-            f.run_command("toggle_setting",{"setting":"word_wrap"})
-            f.run_command("toggle_setting",{"setting":"gutter"})
+            for i, name in enumerate(["Variables","Expression", "Breakpoints"]):
+                self.window.focus_group(groups+i)
+                self.new_file(name)
             self.window.focus_group(act_gr)
+    def new_file(self, name):
+        f = self.window.new_file()
+        f.set_name(name)
+        f.run_command("fill_view",{'text':''})
+        f.run_command("toggle_setting",{"setting":"word_wrap"})
+        f.run_command("toggle_setting",{"setting":"gutter"})
 
 class refresh_expressionsCommand(sublime_plugin.TextCommand):
     def run(self,edit):
@@ -179,6 +166,7 @@ class fill_viewCommand(sublime_plugin.TextCommand):
     def run(self, edit,**kwargs):
         self.view.replace(edit, sublime.Region(0,self.view.size()), kwargs['text'])
         self.view.show(0)
+
 @contextmanager
 def highlight(filename,line):
     w = sublime.active_window()
