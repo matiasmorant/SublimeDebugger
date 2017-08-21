@@ -1,4 +1,5 @@
-import sublime, sublime_plugin
+import sublime
+import sublime_plugin
 import threading
 from SublimeDebugger.backends import dbPython2
 from SublimeDebugger.backends import dbPython3
@@ -12,65 +13,82 @@ expressions = []
 curlang = "Python2"
 DB = dbPython2.DBPython2()
 
+
 class languageCommand(sublime_plugin.WindowCommand):
-    def run(self,lang):
+    def run(self, lang):
         global DB, curlang
-        sublime.status_message("language: "+lang)
-        print("language:",lang)
-        if lang == curlang: return
-        else: curlang = lang
-        DB = dbPython2.DBPython2() if lang == "Python2" else\
-             dbPython3.DBPython3() if lang == "Python3" else\
-             None
-    def is_checked(self,lang):
-        return lang==curlang
+        sublime.status_message("language: " + lang)
+        print("language:", lang)
+        if lang == curlang:
+            return
+        curlang = lang
+        DB = tryeval("db{0}.DB{0}()".format(lang), globals(), locals())
+
+    def is_checked(self, lang):
+        return lang == curlang
+
 
 class debugCommand(sublime_plugin.WindowCommand):
-    input_panel  = None
-    cmd_status = None    
+    input_panel = None
+    cmd_status = None
     cmd = None
+
     def run(self):
         sublime.status_message("Started Debugging")
         print("Started Debugging")
         filename = bdb.Bdb().canonic(self.window.active_view().file_name())
         DB.parent = self
         DB.breakpoints = deepcopy(breakpoints)
-        f = lambda: DB.runscript(filename)
-        threading.Timer(.2,f).start()
+        # self.window.run_command("toggle_watcherCommand",{})
+        threading.Timer(.2, lambda: DB.runscript(filename)).start()
+
     def show_empty_panel(self):
-        self.window.show_input_panel("command (type h for help)","",self.success, self.open,self.cancel)
-    def success(self,s):
+        self.window.show_input_panel("command (type h for help)", "",
+                                     self.success,
+                                     self.open,
+                                     self.cancel)
+
+    def success(self, s):
         self.cmd_status = "success"
         self.cmd = s
+
     def cancel(self):
         self.cmd_status = "cancel"
         self.show_empty_panel()
-    def open(self,s):
+
+    def open(self, s):
         self.cmd_status = "open"
-    def get_cmd(self,line,locals,globals,filename):
+
+    def get_cmd(self, line, locals, globals, filename):
         global expressions
-        fill_view("Variables"   , watcher_content   (globals,locals))
+        fill_view("Variables", watcher_content(globals, locals))
         expressions = parse_expressions(get_view_content("Expression"))
         fill_view("Expression", expression_content())
         self.show_empty_panel()
-        with highlight(filename,line):
-            while not self.cmd_status == "success": sleep(.1)
-        cmd = self.cmd                
+        with highlight(filename, line):
+            while not self.cmd_status == "success":
+                sleep(.1)
+        cmd = self.cmd
         self.cmd_status = None
         self.cmd = None
         return cmd
+
     def set_break(self, filename, line, bpinfo):
         print("set_break", filename, line, bpinfo)
         set_breakGUI(filename, line, bpinfo)
+
     def clear_break(self, filename, line):
         clear_breakGUI(filename, line)
+
     def toggle_break(self, filename, line):
         toggle_breakGUI(filename, line)
+
     def show_help(self, s):
-        s='\n'.join([l for l in s.split('\n')])
+        s = '\n'.join([l for l in s.split('\n')])
         import mdpopups
-        mdpopups.show_popup(self.window.active_view(),s,max_width=960)
-        while mdpopups.is_popup_visible(self.window.active_view()) : pass
+        mdpopups.show_popup(self.window.active_view(), s, max_width=960)
+        while mdpopups.is_popup_visible(self.window.active_view()):
+            pass
         # lines=s.split('\n')
         # html=''.join(["<p>"+line+"</p>" for line in lines])
         # view = self.window.active_view()
@@ -82,117 +100,144 @@ class debugCommand(sublime_plugin.WindowCommand):
         # self.window.run_command("show_panel",{"panel": "output.help"})
         # p = self.window.active_panel()
         # while self.window.active_panel()==p:pass
-    def show_exception(self,s):
+
+    def show_exception(self, s):
         self.window.set_status_bar_visible(True)
-        sublime.status_message("EXCEPTION: "+s)
+        sublime.status_message("EXCEPTION: " + s)
 
     def finished(self):
         pass
 
+
 class toggle_breakpointCommand(sublime_plugin.WindowCommand):
     def run(self):
-        filename, line = self.window.active_view().file_name(), get_curline()+1
+        filename = self.window.active_view().file_name()
+        line = get_curline() + 1
         toggle_breakGUI(filename, line)
         toggle_breakDB(filename, line)
+
 
 @contextmanager
 def bp_manager(filename):
     global breakpoints
     V = sublime.active_window().find_open_file(filename)
-    if not filename in breakpoints: breakpoints.update({filename:{}})
+    if filename not in breakpoints:
+        breakpoints.update({filename: {}})
     bps = breakpoints[filename]
     yield bps
-    V.add_regions("bp",[get_line(V,l-1) for l in bps],"string","circle",sublime.DRAW_NO_FILL|sublime.DRAW_NO_OUTLINE)
+    style = "string", "circle", sublime.DRAW_NO_FILL | sublime.DRAW_NO_OUTLINE
+    V.add_regions("bp", [get_line(V, l - 1) for l in bps], *style)
     fill_view("Breakpoints", breakpoints_content())
+
 
 def set_breakGUI(filename, line, bpinfo):
     with bp_manager(filename) as bps:
-        if not line in bps: bps.update({line:{}})
+        if line not in bps:
+            bps.update({line: {}})
         bps[line] = bpinfo
+
 
 def clear_breakGUI(filename, line):
     with bp_manager(filename) as bps:
-        if line in bps: bps.pop(line)
+        if line in bps:
+            bps.pop(line)
+
 
 def toggle_breakGUI(filename, line):
     with bp_manager(filename) as bps:
-        bps.pop(line) if line in bps else bps.update({line:{}})
+        bps.pop(line) if line in bps else bps.update({line: {}})
 
-def toggle_breakDB(filename,line):
-    DB.toggle_break(filename,line)
+
+def toggle_breakDB(filename, line):
+    DB.toggle_break(filename, line)
 
 # def update_breakDB(filename,line):
 #     bps = breakpoints[filename]
 #     (DB.set_break if line in bps else DB.clear_break)(filename, line)
 
-class toggle_watcherCommand(sublime_plugin.WindowCommand):    
+
+class toggle_watcherCommand(sublime_plugin.WindowCommand):
     original_layout = None
+
     def run(self):
-        names= ["Variables","Expression","Breakpoints"]
-        if any(map(get_view,names)):
-            for name in names: close_view(name)
+        names = ["Variables", "Expression", "Breakpoints"]
+        if any(map(get_view, names)):
+            for name in names:
+                close_view(name)
         else:
             groups = self.window.num_groups()
             act_gr = self.window.active_group()
-            cells, rows, cols = map(self.window.get_layout().__getitem__, ['cells','rows','cols'])
-            new_layout ={'cells': cells+[
-                                            [len(cols)-1,0          ,len(cols),len(rows)  ],
-                                            [len(cols)-1,len(rows)  ,len(cols),len(rows)+1],
-                                            [len(cols)-1,len(rows)+1,len(cols),1.         ]
-                                        ],
-                         'rows' : rows+[.6,.8],
-                         'cols' : [.8*col for col in cols]+[1.]}
+            layout = self.window.get_layout()
+            cells, rows, cols = layout['cells'], layout['rows'], layout['cols']
+            nrows, ncols = len(rows), len(cols)
+            new_cells = [[ncols - 1, 0        , ncols, nrows    ],
+                         [ncols - 1, nrows    , ncols, nrows + 1],
+                         [ncols - 1, nrows + 1, ncols, 1.       ]]
+            new_layout = {'cells': cells + new_cells,
+                          'rows': rows + [.6, .8],
+                          'cols': [.8 * col for col in cols] + [1.]}
             self.window.set_layout(new_layout)
             for i, name in enumerate(names):
-                self.window.focus_group(groups+i)
+                self.window.focus_group(groups + i)
                 self.new_file(name)
             self.window.focus_group(act_gr)
+
     def new_file(self, name):
         f = self.window.new_file()
         f.set_name(name)
-        f.run_command("fill_view",{'text':''})
-        f.run_command("toggle_setting",{"setting":"word_wrap"})
-        f.run_command("toggle_setting",{"setting":"gutter"})
+        f.run_command("fill_view", {'text': ''})
+        f.run_command("toggle_setting", {"setting": "word_wrap"})
+        f.run_command("toggle_setting", {"setting": "gutter"})
+
 
 class refresh_expressionsCommand(sublime_plugin.TextCommand):
-    def run(self,edit):
+    def run(self, edit):
         global expressions
         if self.view.name() == "Expression":
             expressions = parse_expressions(get_view_content("Expression"))
             fill_view("Expression", expression_content())
 
+
 class fill_viewCommand(sublime_plugin.TextCommand):
-    def run(self, edit,**kwargs):
-        self.view.replace(edit, sublime.Region(0,self.view.size()), kwargs['text'])
+    def run(self, edit, **kwargs):
+        region = sublime.Region(0, self.view.size())
+        self.view.replace(edit, region, kwargs['text'])
         self.view.show(0)
 
+
 @contextmanager
-def highlight(filename,line):
+def highlight(filename, line):
     w = sublime.active_window()
     v = w.find_open_file(filename)
     if not v:
-        v= w.open_file(filename)
+        v = w.open_file(filename)
     w.focus_view(v)
-    v.add_regions("0",[get_line(v,line-1)],"comment","bookmark")
-    v.show(v.text_point(line,0)) #focus line beginning
+    v.add_regions("0", [get_line(v, line - 1)], "comment", "bookmark")
+    v.show(v.text_point(line, 0))  # focus line beginning
     yield
-    v.add_regions("0",[                 ],"comment","bookmark")
+    v.add_regions("0", [                     ], "comment", "bookmark")
+
 
 def get_line(v, n):
-    return v.line(v.text_point(n,0))
+    return v.line(v.text_point(n, 0))
+
 
 def get_curline():
     V = sublime.active_window().active_view()
     return V.rowcol(V.sel()[0].begin())[0]
 
+
 def get_view_content(name):
     view = get_view(name)
-    return view.substr(sublime.Region(0,view.size())) if view else None
+    return view.substr(sublime.Region(0, view.size())) if view else None
 
-def fill_view(name,content):
+
+def fill_view(name, content):
     view = get_view(name)
-    if view: view.run_command("fill_view",{'text': content})
-    
+    if view:
+        view.run_command("fill_view", {'text': content})
+
+
 def close_view(name):
     W = sublime.active_window()
     old_view = W.active_view()
@@ -200,63 +245,77 @@ def close_view(name):
     W.focus_view(view)
     if view:
         view.set_scratch(True)
-        view.close()    
+        view.close()
     if not W.views_in_group(W.active_group()):
-        W.run_command("close_pane",{})
+        W.run_command("close_pane", {})
     W.focus_view(old_view)
 
+
 def get_view(name):
-    some = [v for v in sublime.active_window().views() if v.name()==name]
-    return some[0] if len(some)>0 else None
+    some = [v for v in sublime.active_window().views() if v.name() == name]
+    return some[0] if len(some) > 0 else None
 
-def watcher_content(globals,locals):
-    return 'Globals:'            +'\n\n'+\
-              dict_table(globals)+'\n\n'+\
-           'Locals:'             +'\n\n'+\
-              dict_table(locals)
 
-def tryeval(expr,globals,locals):
+def watcher_content(globals, locals):
+    fields = ['Globals:', dict_table(globals), 'Locals:', dict_table(locals)]
+    return "\n\n".join(fields)
+
+
+def tryeval(expr, globals, locals):
     try:
-        return eval(expr,globals,locals)
+        return eval(expr, globals, locals)
     except Exception as e:
         return e
+
 
 def breakpoints_content():
     def ran_to_str(r):
         try:
-            s=':'.join(['' if n is None else str(n) for n in r])
+            s = ':'.join(['' if n is None else str(n) for n in r])
             print(s)
             return s
         except:
             return None
-    def bp_to_str(bp,maxlen=0):
-        k,v = bp
-        return str(k)+' '*(maxlen-len(str(k)))+' ┃ '+(v.get("cond") or ran_to_str(v.get("range")) or '')
+
+    def bp_to_str(bp, maxlen=0):
+        k, v = bp
+        bpline = str(k) + ' ' * (maxlen - len(str(k)))
+        bptype = v.get("cond") or ran_to_str(v.get("range")) or ''
+        return bpline + ' ┃ ' + bptype
+
     def fbps_to_str(fbps):
-        f,bps = fbps
+        f, bps = fbps
         # print(bps,list(map(str,bps.keys())), list(map(len, map(str,bps.keys()) )))
-        try   : 
-            maxlen = max(map(len, map(str,bps.keys()) ))
-        except: maxlen = 0
-        return f+'\n'+'\n'.join([ bp_to_str(bp,maxlen=maxlen) for bp in bps.items() ])
+        try:
+            maxlen = max(map(len, map(str, bps.keys())))
+        except:
+            maxlen = 0
+        bplines = [bp_to_str(bp, maxlen=maxlen) for bp in bps.items()]
+        return f + '\n' + '\n'.join(bplines)
     return '\n'.join(map(fbps_to_str, breakpoints.items()))
+
 
 def expression_content():
     if expressions:
         res = [DB.tryeval(expr) for expr in expressions]
         maxlen = max(map(len, expressions))
-        expr = [k+' '*(maxlen-len(k)) for k in expressions]
-        return '\n'.join([e+' ┃ '+str(r) for r,e in zip(res,expr)])
+        expr = [k + ' ' * (maxlen - len(k)) for k in expressions]
+        return '\n'.join([e + ' ┃ ' + str(r) for r, e in zip(res, expr)])
     else:
         return ''
+
 
 def parse_expressions(txt):
     return [l.split(' ┃ ')[0].strip() for l in txt.split('\n')] if txt else []
 
+
 def dict_table(d):
-    d = {k:v for k,v in d.items() if not k.endswith("__")} #filter special Python vars
+    # d = {k: v for k, v in d.items() if not k.endswith("__")}
     ks, vs = d.keys(), d.values()
-    try   : maxlen = max(map(len, ks))
-    except: maxlen = 0
-    ks =[k+' '*(maxlen-len(k)) for k in ks]
-    return '\n'.join([k+' ┃ '+str(v).replace("\n", "\n"+" "*maxlen+' ┃ ') for k,v in sorted(zip(ks,vs))])
+    try:
+        maxlen = max(map(len, ks))
+    except:
+        maxlen = 0
+    ks = [k.ljust(maxlen) for k in ks]
+    vs = [str(v).replace("\n", "\n" + " " * maxlen + ' ┃ ') for v in vs]
+    return '\n'.join(map(' ┃ '.join, sorted(zip(ks, vs))))
