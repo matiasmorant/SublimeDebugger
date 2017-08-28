@@ -2,7 +2,7 @@ import threading
 import time
 import subprocess
 import os
-from SublimeDebugger.backends.comm_utils import TCPClient,TCPServer
+from .comm_utils import TCPClient,TCPServer
 
 class DBPython2():
 	def __init__(self):

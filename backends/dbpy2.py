@@ -67,8 +67,8 @@ class MyDB(bdb.Bdb):
 
 	def wait_cmd(self,frame):
 		self.curframe = frame
-		ls={k:str(v) for k,v in self.filter_vars(frame.f_locals).items()}
-		gs={k:str(v) for k,v in self.filter_vars(frame.f_globals).items()}
+		ls={k:repr(v) for k,v in self.filter_vars(frame.f_locals).items()}
+		gs={k:repr(v) for k,v in self.filter_vars(frame.f_globals).items()}
 		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd

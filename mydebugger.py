@@ -1,8 +1,8 @@
 import sublime
 import sublime_plugin
 import threading
-from SublimeDebugger.backends import dbPython2
-from SublimeDebugger.backends import dbPython3
+from .backends import dbPython2
+from .backends import dbPython3
 import bdb
 from contextlib import contextmanager
 from time import sleep
@@ -313,9 +313,15 @@ def dict_table(d):
     # d = {k: v for k, v in d.items() if not k.endswith("__")}
     ks, vs = d.keys(), d.values()
     try:
+        print(d["__builtins__"])
+    except: pass
+    try:
         maxlen = max(map(len, ks))
     except:
         maxlen = 0
     ks = [k.ljust(maxlen) for k in ks]
-    vs = [str(v).replace("\n", "\n" + " " * maxlen + ' ┃ ') for v in vs]
+    # vs = [str(v).replace("\n", "\n" + " " * maxlen + ' ┃ ') for v in vs]
+    print (vs)
+    # vs = [repr(v) for v in vs]
+    # print (vs)
     return '\n'.join(map(' ┃ '.join, sorted(zip(ks, vs))))
