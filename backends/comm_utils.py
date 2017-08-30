@@ -2,9 +2,9 @@ import socket
 import json
 import traceback
 
-def create_connection(port):
+def create_connection(port, ip="127.0.0.1"):
 	print ("connecting",port)
-	TCP_IP, TCP_PORT = "127.0.0.1", port
+	TCP_IP, TCP_PORT = ip, port
 	s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind((TCP_IP,TCP_PORT))
@@ -14,7 +14,7 @@ def create_connection(port):
 	print ("connected", addr)
 	return conn
 
-def connect(port):
+def connect(port, ip="127.0.0.1"):
 	# def tryevalE(expr):
 	# 	try:
 	# 		eval(expr)
@@ -31,7 +31,7 @@ def connect(port):
 	connected = False
 	for _ in range(10): #try to connect 10 times
 		try:
-			sock.connect(("127.0.0.1", port))
+			sock.connect((ip, port))
 			connected = True
 		except:
 			connected = False
@@ -48,8 +48,8 @@ def recv_message(conn, BUFFER_SIZE = 1024):
 	return data
 
 class TCPClient(object):
-	def __init__(self, port, create= False):
-		self.client_conn = (create_connection if create else connect)(port)
+	def __init__(self, port, ip="127.0.0.1", create= False):
+		self.client_conn = (create_connection if create else connect)(port,ip=ip)
 	def __getattr__(self,m):
 		def f(*args):
 			self.client_conn.send((m+"$@#"+json.dumps(args)+"$@#.").encode("UTF-8"))
@@ -58,8 +58,8 @@ class TCPClient(object):
 		return f
 
 class TCPServer(object):
-	def __init__(self, port , create=False):
-		self.client_conn = (create_connection if create else connect)(port)
+	def __init__(self, port, ip="127.0.0.1" , create=False):
+		self.client_conn = (create_connection if create else connect)(port,ip=ip)
 	def __getitem__(self,m):
 		instruction, parameters , _ = m.split('$@#')
 		ret,ex = None,None
