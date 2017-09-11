@@ -1,6 +1,8 @@
 import socket
 import json
 import traceback
+import threading
+import time
 
 def create_connection(port, ip="127.0.0.1"):
 	print ("connecting",port)
@@ -80,3 +82,20 @@ class TCPServer(object):
 			traceback.print_exc()
 			print ("connection down",e)
 		self.client_conn.close()
+
+class Peer(TCPServer):
+	def __init__(self, port=(5004,5005), ip="127.0.0.1" , create=False):
+		if create:
+			super(Peer, self).__init__(port[0],ip=ip, create=create)
+			self.client =  TCPClient(  port[1],ip=ip, create=create)
+		else:
+			self.client =  TCPClient(  port[0],ip=ip, create=create)
+			time.sleep(.2)
+			super(Peer, self).__init__(port[1],ip=ip, create=create)
+		self.server_thread = threading.Thread(target=self.loop)
+		self.server_thread.start()
+		time.sleep(.2)
+	def __getattr__(self, m):
+		return getattr(self.client, m)
+	def __del__(self):
+		self.server_thread.join()
