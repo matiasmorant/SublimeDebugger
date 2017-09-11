@@ -2,41 +2,39 @@ import threading
 import time
 import subprocess
 import os
-from .comm_utils import TCPClient,TCPServer
+from .comm_utils import Peer
 
 class DBPython2():
 	def __init__(self):
 		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/dbpy2_server.py"])
 		self.breakpoints = {}
 		time.sleep(.2)
-		self.server = SublimeServer(5004)
-		self.server_thread = threading.Thread(target=self.server.loop)
-		self.server_thread.start()
-		time.sleep(.2)
-		self.proc         = TCPClient(5005)
-		self.set_break    = self.proc.set_break
-		self.clear_break  = self.proc.clear_break
-		self.toggle_break = self.proc.toggle_break
-		self.tryeval      = self.proc.tryeval
+		self.peer = SublimePeer()
+		self.set_break    = self.peer.D_set_break
+		self.clear_break  = self.peer.D_clear_break
+		self.toggle_break = self.peer.D_toggle_break
+		self.tryeval      = self.peer.D_tryeval
 		print("fully connected")
 	def runscript(self, filename):
-		self.proc.set_breakpoints(self.breakpoints)
-		self.proc.runscript(filename)
+		print("runscript")
+		self.peer.D_set_breakpoints(self.breakpoints)
+		print("runscript D_set_bps")
+		self.peer.D_runscript(filename)
 	def set_parent(self,p):
-		self.server.parent = p
+		self.peer.parent = p
 	def get_parent(self):
-		return self.server.parent
+		return self.peer.parent
 	def __del__(self):
 		self.sp.kill()
 		self.sp.terminate()
-		self.server_thread.join()
+		pass
 	parent = property(fset=set_parent, fget=get_parent)
 
-class SublimeServer(TCPServer):
-	def get_cmd       (self, line,locals,globals,filename): return self.parent.get_cmd (line,locals,globals,filename)
-	def set_break     (self, filename,line, bpinfo       ): self.parent.set_break      (filename,line,bpinfo)
-	def clear_break   (self, filename,line               ): self.parent.clear_break    (filename,line)
-	def toggle_break  (self, filename,line               ): self.parent.toggle_break   (filename,line)
-	def show_help     (self, s                           ): self.parent.show_help      (s)
-	def show_exception(self, s                           ): self.parent.show_exception (s)
-	def finished      (self,                             ): self.parent.finished       ()
+class SublimePeer(Peer):
+	def E_get_cmd       (self, line,locals,globals,filename): return self.parent.get_cmd (line,locals,globals,filename)
+	def E_set_break     (self, filename,line, bpinfo       ): self.parent.set_break      (filename,line,bpinfo)
+	def E_clear_break   (self, filename,line               ): self.parent.clear_break    (filename,line)
+	def E_toggle_break  (self, filename,line               ): self.parent.toggle_break   (filename,line)
+	def E_show_help     (self, s                           ): self.parent.show_help      (s)
+	def E_show_exception(self, s                           ): self.parent.show_exception (s)
+	def E_finished      (self,                             ): self.parent.finished       ()	

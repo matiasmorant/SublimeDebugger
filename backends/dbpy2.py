@@ -69,7 +69,7 @@ class MyDB(bdb.Bdb):
 		self.curframe = frame
 		ls={k:repr(v) for k,v in self.filter_vars(frame.f_locals).items()}
 		gs={k:repr(v) for k,v in self.filter_vars(frame.f_globals).items()}
-		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
+		cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
 		cmdl = (cmd.split() or [''])
@@ -81,24 +81,24 @@ class MyDB(bdb.Bdb):
 			if len(args)>1:
 				mr = match_range(args[1])
 				if args[1] == "c":
-					self.parent.clear_break(f,l)
+					self.parent.E_clear_break(f,l)
 					self       .clear_break(f,l)
 				elif mr:
-					self.parent.clear_break(f,l)
+					self.parent.E_clear_break(f,l)
 					self       .clear_break(f,l)
-					self.parent.set_break(f,l,{"range": mr, "hits" : 0})
+					self.parent.E_set_break(f,l,{"range": mr, "hits" : 0})
 					self       .set_break(f,l,{"range": mr, "hits" : 0})
 				else :
-					self.parent.clear_break(f,l)
+					self.parent.E_clear_break(f,l)
 					self       .clear_break(f,l)
-					self.parent.set_break(f,l,{"cond":args[1]})
+					self.parent.E_set_break(f,l,{"cond":args[1]})
 					self       .set_break(f,l,{"cond":args[1]})
 			else:
-				self.parent.clear_break(f,l)
+				self.parent.E_clear_break(f,l)
 				self       .clear_break(f,l)
-				self.parent.set_break(f,l,{})
+				self.parent.E_set_break(f,l,{})
 				self       .set_break(f,l,{})
-			# self.parent.toggle_break(f,l)
+			# self.parent.E_toggle_break(f,l)
 			# self.toggle_break(f,l)
 			self.wait_cmd(frame)
 		elif s in ['s']: self.set_step()
@@ -116,7 +116,7 @@ class MyDB(bdb.Bdb):
 			self.wait_cmd(frame)
 		else           : self.wait_cmd(frame)
 	def show_help(self):
-		self.parent.show_help("""
+		self.parent.E_show_help("""
 			Commands               Description
 			c                      Continue execution, only stop when a breakpoint is encountered.
 			n                      Continue execution until the next line in the current function is reached or
@@ -175,19 +175,19 @@ class MyDB(bdb.Bdb):
 		except SyntaxError:
 			print ("SyntaxError")
 			traceback.print_exc()
-			self.parent.show_exception("syntax error")
+			self.parent.E_show_exception("syntax error")
 		except:
 			traceback.print_exc()
 			print ("Uncaught exception. Entering post mortem debugging")
 			typ, val, t = sys.exc_info()
-			self.parent.show_exception(str(val))
+			self.parent.E_show_exception(str(val))
 			self.stack, self.curidx = self.get_stack(None, t)
 			self.wait_cmd(self.stack[self.curidx][0])			
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				if "hits" in bpinfo:
 					bpinfo["hits"]=0
-		self.parent.finished()
+		self.parent.E_finished()
 		__main__.__dict__.clear()
 		__main__.__dict__.update(main_copy)
 	def tryeval(self,expr):
