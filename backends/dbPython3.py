@@ -194,7 +194,7 @@ class DBPython3(bdb.Bdb):
 		__main__.__dict__.update(main_copy)
 	def tryeval(self,expr):
 		try:
-			return eval(expr, self.curframe.f_locals, self.curframe.f_globals)
+			return eval(expr, self.curframe.f_globals, self.curframe.f_locals)
 		except Exception as e:
 			return e
 	def toggle_break(self,filename,line):
