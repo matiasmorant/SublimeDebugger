@@ -4,6 +4,9 @@ from dbpy2 import MyDB
 import threading
 
 from comm_utils import Peer
+print "mydb2.py started"
+
+DB = MyDB()
 
 class DebuggerPeer(Peer):
 	def D_set_breakpoints(self, bps          ):
@@ -18,9 +21,6 @@ class DebuggerPeer(Peer):
 	def D_tryeval        (self, expr                ): return DB.tryeval(expr)
 	def D_runscript      (self, filename            ): threading.Timer(.1, DB.runscript, args=[filename]).start()
 
-print "mydb2.py started"
-
-DB = MyDB()
 
 print "debugger ready"
 DB.parent = DebuggerPeer(create=True)

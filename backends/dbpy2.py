@@ -4,6 +4,7 @@ import traceback
 import sys
 import os
 import inspect
+from contextlib import contextmanager
 
 def line(frame):
 	return frame.f_lineno
@@ -69,7 +70,10 @@ class MyDB(bdb.Bdb):
 		self.curframe = frame
 		ls={k:repr(v) for k,v in self.filter_vars(frame.f_locals).items()}
 		gs={k:repr(v) for k,v in self.filter_vars(frame.f_globals).items()}
-		cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame))
+		import __main__
+		self.main_debug = __main__.__dict__.copy()
+		with self.exit__main__(self.main_copy):
+			cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
 		cmdl = (cmd.split() or [''])
@@ -147,12 +151,13 @@ class MyDB(bdb.Bdb):
 		# (this gets rid of pdb's globals and cleans old variables on restarts).
 		import __main__
 		__main__.__dict__
-		main_copy = __main__.__dict__.copy()
+		self.main_copy = __main__.__dict__.copy()
+		self.main_debug= {	"__name__"    : "__main__",
+							"__file__"    : filename,
+							"__builtins__": __builtins__,
+						}
 		__main__.__dict__.clear()
-		__main__.__dict__.update({	"__name__"    : "__main__",
-									"__file__"    : filename,
-									"__builtins__": __builtins__,
-								})
+		__main__.__dict__.update(self.main_debug)
 		# When bdb sets tracing, a number of call and line events happens
 		# BEFORE debugger even reaches user's code (and the exact sequence of
 		# events depends on python version). So we take special measures to
@@ -189,10 +194,25 @@ class MyDB(bdb.Bdb):
 					bpinfo["hits"]=0
 		self.parent.E_finished()
 		__main__.__dict__.clear()
-		__main__.__dict__.update(main_copy)
+		__main__.__dict__.update(self.main_copy)
+	@contextmanager
+	def exit__main__(self, main_dict):
+		import __main__
+		cur_dict = __main__.__dict__.copy()
+		__main__.__dict__.clear()
+		__main__.__dict__.update(main_dict)
+		try:
+			yield
+		except Exception as e:
+			raise e
+		finally: 
+			__main__.__dict__.clear()
+			__main__.__dict__.update(cur_dict)
 	def tryeval(self,expr):
 		try:
-			return eval(expr, self.curframe.f_locals, self.curframe.f_globals)
+			with self.exit__main__(self.main_debug):  
+				ret = repr(eval(expr, self.curframe.f_globals, self.curframe.f_locals))
+			return ret
 		except Exception as e:
 			return e
 	def toggle_break(self,filename,line):
@@ -219,9 +239,6 @@ class MyDB(bdb.Bdb):
 		bps = self.breakpoints[filename]
 		if line in bps: bps.pop(line)
 	def filter_vars(self, d):
-		# 		sf = os.path.dirname(os.path.abspath(inspect.getsourcefile(v)))
-		# try:
-		# 	d.pop("__builtins__") # this messes up things (not eval defined): copy d first
-		# except:
+		# 		sf = os.path.dirname(os.path.abspaself.main_copy:
 		# 	pass
 		return d
