@@ -10,19 +10,23 @@ from copy import deepcopy
 
 breakpoints = {}
 expressions = []
-curlang = "Python2"
-DB = dbPython2.DBPython2()
+curlang = "Python3"
+DB = dbPython3.DBPython3()
 
 
 class languageCommand(sublime_plugin.WindowCommand):
     def run(self, lang):
         global DB, curlang
-        sublime.status_message("language: " + lang)
-        print("language:", lang)
         if lang == curlang:
             return
-        curlang = lang
-        DB = tryeval("db{0}.DB{0}()".format(lang), globals(), locals())
+        try:
+            DB = eval("db{0}.DB{0}()".format(lang), globals(), locals())
+            sublime.status_message("language: " + lang)
+            print("language:", lang)
+            curlang = lang
+        except Exception as e:
+            sublime.status_message(lang + " not installed")
+            print(lang + " not installed")
 
     def is_checked(self, lang):
         return lang == curlang
