@@ -7,6 +7,7 @@ import bdb
 from contextlib import contextmanager
 from time import sleep
 from copy import deepcopy
+from os.path import realpath
 
 breakpoints = {}
 expressions = []
@@ -40,7 +41,7 @@ class debugCommand(sublime_plugin.WindowCommand):
     def run(self):
         sublime.status_message("Started Debugging")
         print("Started Debugging")
-        filename = bdb.Bdb().canonic(self.window.active_view().file_name())
+        filename = realpath(self.window.active_view().file_name())
         DB.parent = self
         DB.breakpoints = deepcopy(breakpoints)
         # self.window.run_command("toggle_watcherCommand",{})
@@ -137,6 +138,7 @@ def bp_manager(filename):
 
 
 def set_breakGUI(filename, line, bpinfo):
+    filename = realpath(filename)
     with bp_manager(filename) as bps:
         if line not in bps:
             bps.update({line: {}})
@@ -144,17 +146,20 @@ def set_breakGUI(filename, line, bpinfo):
 
 
 def clear_breakGUI(filename, line):
+    filename = realpath(filename)
     with bp_manager(filename) as bps:
         if line in bps:
             bps.pop(line)
 
 
 def toggle_breakGUI(filename, line):
+    filename = realpath(filename)
     with bp_manager(filename) as bps:
         bps.pop(line) if line in bps else bps.update({line: {}})
 
 
 def toggle_breakDB(filename, line):
+    filename = realpath(filename)
     DB.toggle_break(filename, line)
 
 # def update_breakDB(filename,line):

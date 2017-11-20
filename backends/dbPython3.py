@@ -8,7 +8,7 @@ import inspect
 def line(frame):
 	return frame.f_lineno
 def filename(frame):
-	return bdb.Bdb().canonic(frame.f_code.co_filename)
+	return os.path.realpath(frame.f_code.co_filename)
 def function_name(frame):
 	return frame.f_code.co_name or "<unknown>"
 def match_range(s):
@@ -160,7 +160,7 @@ class DBPython3(bdb.Bdb):
 		# events depends on python version). So we take special measures to
 		# avoid stopping before we reach the main script (see user_line and
 		# user_call for details).
-		self.mainpyfile = self.canonic(filename)
+		self.mainpyfile = os.path.realpath(filename)
 		self._user_requested_quit = False
 		with open(filename, "rb") as fp:
 			statement = "exec(compile(%r, %r, 'exec'))" % \
