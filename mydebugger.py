@@ -88,22 +88,24 @@ class debugCommand(sublime_plugin.WindowCommand):
         toggle_breakGUI(filename, line)
 
     def show_help(self, s):
-        s = '\n'.join([l for l in s.split('\n')])
-        import mdpopups
-        mdpopups.show_popup(self.window.active_view(), s, max_width=960)
-        while mdpopups.is_popup_visible(self.window.active_view()):
-            pass
+        # s = '\n'.join([l for l in s.split('\n')])
+        # import mdpopups
+        # mdpopups.show_popup(self.window.active_view(), s, max_width=960)
+        # while mdpopups.is_popup_visible(self.window.active_view()):
+        #     pass
+
         # lines=s.split('\n')
         # html=''.join(["<p>"+line+"</p>" for line in lines])
         # view = self.window.active_view()
         # view.show_popup(html)
         # while view.is_popup_visible() : pass
 
-        # view = self.window.create_output_panel("help")
-        # view.run_command("fill_view",{'text': s})
-        # self.window.run_command("show_panel",{"panel": "output.help"})
-        # p = self.window.active_panel()
-        # while self.window.active_panel()==p:pass
+        view = self.window.create_output_panel("help")
+        view.run_command("fill_view",{'text': s})
+        view.sel().clear()
+        self.window.run_command("show_panel",{"panel": "output.help"})
+        p = self.window.active_panel()
+        while self.window.active_panel()==p:pass
 
     def show_exception(self, s):
         self.window.set_status_bar_visible(True)
