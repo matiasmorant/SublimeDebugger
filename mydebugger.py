@@ -307,32 +307,19 @@ def breakpoints_content():
 
 
 def expression_content():
-    if expressions:
-        res = [DB.tryeval(expr) for expr in expressions]
-        maxlen = max(map(len, expressions))
-        expr = [k + ' ' * (maxlen - len(k)) for k in expressions]
-        return '\n'.join([e + ' ┃ ' + str(r) for r, e in zip(res, expr)])
-    else:
-        return ''
+    d = dict(zip(expressions, map(DB.tryeval, expressions)))
+    return dict_table(d)
 
 
 def parse_expressions(txt):
-    return [l.split(' ┃ ')[0].strip() for l in txt.split('\n')] if txt else []
+    keys = [l.split(' ┃ ')[0].strip() for l in txt.split('\n')]
+    return [k for k in keys if k]  # list(filter(bool, keys))
 
 
 def dict_table(d):
     # d = {k: v for k, v in d.items() if not k.endswith("__")}
     ks, vs = d.keys(), d.values()
-    try:
-        print(d["__builtins__"])
-    except: pass
-    try:
-        maxlen = max(map(len, ks))
-    except:
-        maxlen = 0
+    maxlen = max(map(len, ks)) if ks else 0
     ks = [k.ljust(maxlen) for k in ks]
-    # vs = [str(v).replace("\n", "\n" + " " * maxlen + ' ┃ ') for v in vs]
-    print (vs)
-    # vs = [repr(v) for v in vs]
-    # print (vs)
+    vs = [str(v).replace("\n", "\n" + " " * maxlen + ' ┃ ') for v in vs]
     return '\n'.join(map(' ┃ '.join, sorted(zip(ks, vs))))
