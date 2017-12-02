@@ -10,7 +10,6 @@ from copy import deepcopy
 from os.path import realpath
 
 breakpoints = {}
-expressions = []
 curlang = "Python3"
 DB = dbPython3.DBPython3()
 
@@ -65,10 +64,8 @@ class debugCommand(sublime_plugin.WindowCommand):
         self.cmd_status = "open"
 
     def get_cmd(self, line, locals, globals, filename):
-        global expressions
         fill_view("Variables", watcher_content(globals, locals))
-        expressions = parse_expressions(get_view_content("Expression"))
-        fill_view("Expression", expression_content())
+        refresh_expressions()
         self.show_empty_panel()
         with highlight(filename, line):
             while not self.cmd_status == "success":
@@ -203,10 +200,8 @@ class toggle_watcherCommand(sublime_plugin.WindowCommand):
 
 class refresh_expressionsCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        global expressions
         if self.view.name() == "Expression":
-            expressions = parse_expressions(get_view_content("Expression"))
-            fill_view("Expression", expression_content())
+            refresh_expressions()
 
 
 class fill_viewCommand(sublime_plugin.TextCommand):
@@ -267,11 +262,6 @@ def get_view(name):
     return some[0] if len(some) > 0 else None
 
 
-def watcher_content(globals, locals):
-    fields = ['Globals:', dict_table(globals), 'Locals:', dict_table(locals)]
-    return "\n\n".join(fields)
-
-
 def tryeval(expr, globals, locals):
     try:
         return eval(expr, globals, locals)
@@ -283,35 +273,32 @@ def breakpoints_content():
     def ran_to_str(r):
         try:
             s = ':'.join(['' if n is None else str(n) for n in r])
-            print(s)
             return s
         except:
             return None
-
-    def bp_to_str(bp, maxlen=0):
-        k, v = bp
-        bpline = str(k) + ' ' * (maxlen - len(str(k)))
-        bptype = v.get("cond") or ran_to_str(v.get("range")) or ''
-        return bpline + ' ┃ ' + bptype
+    
+    def bp_type(v):
+        return v.get("cond") or ran_to_str(v.get("range")) or ''
 
     def fbps_to_str(fbps):
         f, bps = fbps
-        # print(bps,list(map(str,bps.keys())), list(map(len, map(str,bps.keys()) )))
-        try:
-            maxlen = max(map(len, map(str, bps.keys())))
-        except:
-            maxlen = 0
-        bplines = [bp_to_str(bp, maxlen=maxlen) for bp in bps.items()]
-        return f + '\n' + '\n'.join(bplines)
+        d = {str(k): bp_type(v) or '' for k, v in bps.items()}
+        return f + '\n' + dict_table(d)
     return '\n'.join(map(fbps_to_str, breakpoints.items()))
 
 
-def expression_content():
-    d = dict(zip(expressions, map(DB.tryeval, expressions)))
-    return dict_table(d)
+def watcher_content(globals, locals):
+    fields = ['Globals:', dict_table(globals), 'Locals:', dict_table(locals)]
+    return "\n\n".join(fields)
 
 
-def parse_expressions(txt):
+def refresh_expressions():
+    expressions = get_keys(get_view_content("Expression"))
+    d = {expr: DB.tryeval(expr) for expr in expressions}
+    fill_view("Expression", dict_table(d))
+
+
+def get_keys(txt):
     keys = [l.split(' ┃ ')[0].strip() for l in txt.split('\n')]
     return [k for k in keys if k]  # list(filter(bool, keys))
 
