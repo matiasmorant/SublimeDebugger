@@ -4,7 +4,6 @@ import traceback
 import sys
 import os
 import inspect
-from contextlib import contextmanager
 
 def line(frame):
 	return frame.f_lineno
@@ -27,7 +26,7 @@ def n_in_range(n,ran):
 	start,end,step = ran
 	return start <= n and ((not end) or n<end) and (n-start)%step == 0
 
-class MyDB(bdb.Bdb):
+class DBPython3S(bdb.Bdb):
 
 	breakpoints = {}
 	def user_call(self, frame, args):
@@ -70,10 +69,7 @@ class MyDB(bdb.Bdb):
 		self.curframe = frame
 		ls={k:repr(v) for k,v in self.filter_vars(frame.f_locals).items()}
 		gs={k:repr(v) for k,v in self.filter_vars(frame.f_globals).items()}
-		import __main__
-		self.main_debug = __main__.__dict__.copy()
-		with self.exit__main__(self.main_copy):
-			cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame))
+		cmd = self.parent.get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
 		cmdl = (cmd.split() or [''])
@@ -85,30 +81,30 @@ class MyDB(bdb.Bdb):
 			if len(args)>1:
 				mr = match_range(args[1])
 				if args[1] == "c":
-					self.parent.E_clear_break(f,l)
+					self.parent.clear_break(f,l)
 					self       .clear_break(f,l)
 				elif mr:
-					self.parent.E_clear_break(f,l)
+					self.parent.clear_break(f,l)
 					self       .clear_break(f,l)
-					self.parent.E_set_break(f,l,{"range": mr, "hits" : 0})
+					self.parent.set_break(f,l,{"range": mr, "hits" : 0})
 					self       .set_break(f,l,{"range": mr, "hits" : 0})
 				else :
-					self.parent.E_clear_break(f,l)
+					self.parent.clear_break(f,l)
 					self       .clear_break(f,l)
-					self.parent.E_set_break(f,l,{"cond":args[1]})
+					self.parent.set_break(f,l,{"cond":args[1]})
 					self       .set_break(f,l,{"cond":args[1]})
 			else:
-				self.parent.E_clear_break(f,l)
+				self.parent.clear_break(f,l)
 				self       .clear_break(f,l)
-				self.parent.E_set_break(f,l,{})
+				self.parent.set_break(f,l,{})
 				self       .set_break(f,l,{})
-			# self.parent.E_toggle_break(f,l)
+			# self.parent.toggle_break(f,l)
 			# self.toggle_break(f,l)
 			self.wait_cmd(frame)
 		elif s in ['s']: self.set_step()
 		elif s in ['q']: self.set_quit()
 		elif s in ['r']: self.set_return(frame)
-		elif s in ['u']: self.set_until(frame)
+		elif s in ['u']: self.set_until(frame, int(args[0]) if args else None)
 		elif s in ['o']:
 			self.curidx = self.curidx-1
 			self.wait_cmd(self.stack[self.curidx][0])
@@ -120,7 +116,7 @@ class MyDB(bdb.Bdb):
 			self.wait_cmd(frame)
 		else           : self.wait_cmd(frame)
 	def show_help(self):
-		self.parent.E_show_help("""
+		self.parent.show_help("""
 			Commands               Description
 			c                      Continue execution, only stop when a breakpoint is encountered.
 			n                      Continue execution until the next line in the current function is reached or
@@ -135,8 +131,10 @@ class MyDB(bdb.Bdb):
 			                       function that is called or in the current function).
 			q                      Quit the debugger.
 			r                      Continue execution until the current function returns.
-			u                      Continue execution until the line with a number greater than the current one
-			                       is reached.  Also stop when the current frame returns.
+			u [LINE]               Without argument, continue execution until the line with a number greater
+			                       than the current one is reached.  With a line number, continue execution
+			                       until a line with a number greater or equal than LINE is reached. In both
+			                       cases, also stop when the current frame returns.
 			o                      Move the current frame one level up in the stack trace (to an older frame).
 			i                      Move the current frame one level down in the stack trace (to a newer frame).
 			h                      Show this help.
@@ -151,13 +149,12 @@ class MyDB(bdb.Bdb):
 		# (this gets rid of pdb's globals and cleans old variables on restarts).
 		import __main__
 		__main__.__dict__
-		self.main_copy = __main__.__dict__.copy()
-		self.main_debug= {	"__name__"    : "__main__",
-							"__file__"    : filename,
-							"__builtins__": __builtins__,
-						}
+		main_copy = __main__.__dict__.copy()
 		__main__.__dict__.clear()
-		__main__.__dict__.update(self.main_debug)
+		__main__.__dict__.update({	"__name__"    : "__main__",
+									"__file__"    : filename,
+									"__builtins__": __builtins__,
+								})
 		# When bdb sets tracing, a number of call and line events happens
 		# BEFORE debugger even reaches user's code (and the exact sequence of
 		# events depends on python version). So we take special measures to
@@ -180,39 +177,24 @@ class MyDB(bdb.Bdb):
 		except SyntaxError:
 			print ("SyntaxError")
 			traceback.print_exc()
-			self.parent.E_show_exception("syntax error")
+			self.parent.show_exception("syntax error")
 		except:
 			traceback.print_exc()
 			print ("Uncaught exception. Entering post mortem debugging")
 			typ, val, t = sys.exc_info()
-			self.parent.E_show_exception(str(val))
+			self.parent.show_exception(str(val))
 			self.stack, self.curidx = self.get_stack(None, t)
 			self.wait_cmd(self.stack[self.curidx][0])			
 		for filenam,lines in self.breakpoints.items():
 			for l,bpinfo in lines.items():
 				if "hits" in bpinfo:
 					bpinfo["hits"]=0
-		self.parent.E_finished()
+		self.parent.finished()
 		__main__.__dict__.clear()
-		__main__.__dict__.update(self.main_copy)
-	@contextmanager
-	def exit__main__(self, main_dict):
-		import __main__
-		cur_dict = __main__.__dict__.copy()
-		__main__.__dict__.clear()
-		__main__.__dict__.update(main_dict)
-		try:
-			yield
-		except Exception as e:
-			raise e
-		finally: 
-			__main__.__dict__.clear()
-			__main__.__dict__.update(cur_dict)
+		__main__.__dict__.update(main_copy)
 	def tryeval(self,expr):
 		try:
-			with self.exit__main__(self.main_debug):  
-				ret = repr(eval(expr, self.curframe.f_globals, self.curframe.f_locals))
-			return ret
+			return eval(expr, self.curframe.f_globals, self.curframe.f_locals)
 		except Exception as e:
 			return e
 	def toggle_break(self,filename,line):
@@ -239,8 +221,9 @@ class MyDB(bdb.Bdb):
 		bps = self.breakpoints[filename]
 		if line in bps: bps.pop(line)
 	def filter_vars(self, d):
+		# 		sf = os.path.dirname(os.path.abspath(inspect.getsourcefile(v)))
 		# try:
 		# 	d.pop("__builtins__") # this messes up things (not eval defined): copy d first
 		# except:
-		# 	pass		
+		# 	pass
 		return d

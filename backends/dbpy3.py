@@ -108,7 +108,7 @@ class MyDB(bdb.Bdb):
 		elif s in ['s']: self.set_step()
 		elif s in ['q']: self.set_quit()
 		elif s in ['r']: self.set_return(frame)
-		elif s in ['u']: self.set_until(frame)
+		elif s in ['u']: self.set_until(frame, int(args[0]) if args else None)
 		elif s in ['o']:
 			self.curidx = self.curidx-1
 			self.wait_cmd(self.stack[self.curidx][0])
@@ -135,8 +135,10 @@ class MyDB(bdb.Bdb):
 			                       function that is called or in the current function).
 			q                      Quit the debugger.
 			r                      Continue execution until the current function returns.
-			u                      Continue execution until the line with a number greater than the current one
-			                       is reached.  Also stop when the current frame returns.
+			u [LINE]               Without argument, continue execution until the line with a number greater
+			                       than the current one is reached.  With a line number, continue execution
+			                       until a line with a number greater or equal than LINE is reached. In both
+			                       cases, also stop when the current frame returns.
 			o                      Move the current frame one level up in the stack trace (to an older frame).
 			i                      Move the current frame one level down in the stack trace (to a newer frame).
 			h                      Show this help.
@@ -242,5 +244,5 @@ class MyDB(bdb.Bdb):
 		# try:
 		# 	d.pop("__builtins__") # this messes up things (not eval defined): copy d first
 		# except:
-		# 	pass		
+		# 	pass
 		return d

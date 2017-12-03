@@ -3,10 +3,18 @@ import time
 import subprocess
 import os
 from .comm_utils import Peer
+import json
+
+in_this_folder = lambda filename: os.path.dirname(os.path.abspath(__file__))+'/'+filename
 
 class DBPython2():
 	def __init__(self):
-		self.sp = subprocess.Popen(["python2",os.path.dirname(__file__)+"/dbpy2_server.py"])
+		try:
+			cmds = json.load(open(in_this_folder("../SublimeDebugger.sublime-settings")))
+		except Exception as e:
+			print(e)
+			print("SublimeDebugger.sublime-settings not found")
+		self.sp = subprocess.Popen([cmds["python2"],os.path.dirname(__file__)+"/dbpy2_server.py"])
 		self.breakpoints = {}
 		time.sleep(.2)
 		self.peer = SublimePeer()

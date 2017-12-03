@@ -3,6 +3,7 @@ import sublime_plugin
 import threading
 from .backends import dbPython2
 from .backends import dbPython3
+from .backends import dbPython3S
 import bdb
 from contextlib import contextmanager
 from time import sleep
@@ -10,8 +11,8 @@ from copy import deepcopy
 from os.path import realpath
 
 breakpoints = {}
-curlang = "Python3"
-DB = dbPython3.DBPython3()
+curlang = "Python3S"
+DB = dbPython3S.DBPython3S()
 
 
 class languageCommand(sublime_plugin.WindowCommand):
