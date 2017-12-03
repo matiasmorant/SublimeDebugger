@@ -4,7 +4,6 @@ import threading
 from .backends import dbPython2
 from .backends import dbPython3
 from .backends import dbPython3S
-import bdb
 from contextlib import contextmanager
 from time import sleep
 from copy import deepcopy
@@ -100,11 +99,11 @@ class debugCommand(sublime_plugin.WindowCommand):
         # while view.is_popup_visible() : pass
 
         view = self.window.create_output_panel("help")
-        view.run_command("fill_view",{'text': s})
+        view.run_command("fill_view", {'text': s})
         view.sel().clear()
-        self.window.run_command("show_panel",{"panel": "output.help"})
+        self.window.run_command("show_panel", {"panel": "output.help"})
         p = self.window.active_panel()
-        while self.window.active_panel()==p:pass
+        while self.window.active_panel() == p: pass
 
     def show_exception(self, s):
         self.window.set_status_bar_visible(True)
@@ -210,6 +209,7 @@ class fill_viewCommand(sublime_plugin.TextCommand):
         region = sublime.Region(0, self.view.size())
         self.view.replace(edit, region, kwargs['text'])
         self.view.show(0)
+        self.view.sel().clear()
 
 
 @contextmanager
@@ -277,7 +277,7 @@ def breakpoints_content():
             return s
         except:
             return None
-    
+
     def bp_type(v):
         return v.get("cond") or ran_to_str(v.get("range")) or ''
 
@@ -300,7 +300,7 @@ def refresh_expressions():
 
 
 def get_keys(txt):
-    keys = [l.split(' ┃ ')[0].strip() for l in txt.split('\n')]
+    keys = [l.split(' ┃ ')[0].strip() for l in txt.split('\n')] if txt else []
     return [k for k in keys if k]  # list(filter(bool, keys))
 
 
