@@ -6,7 +6,7 @@ This is a graphical debugger for Sublime Text 3.
 
 ## Hire Me
 
-The developer of this project needs a job. I can relocate anywhere in the world or work remotely. I have a degree in Mechanical Engineering. 
+The developer of this project needs a job. I can relocate anywhere in the world or work remotely. I have a degree in Mechanical Engineering. wvlia5@live.com.ar 
 
 ## Features
 
