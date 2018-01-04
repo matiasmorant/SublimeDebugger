@@ -3,11 +3,11 @@ from dbpy2 import MyDB
 ##############
 import threading
 
-from comm_utils import Peer
+from comm_utils import PingPong #Peer
 
 DB = MyDB()
 
-class DebuggerPeer(Peer):
+class DebuggerPeer(PingPong):
 	def D_set_breakpoints(self, bps          ):
 		for ldict in bps.values():
 			for k in ldict.keys():

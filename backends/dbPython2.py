@@ -2,7 +2,7 @@ import threading
 import time
 import subprocess
 import os
-from .comm_utils import Peer
+from .comm_utils import PingPong #Peer
 import json
 
 in_this_folder = lambda filename: os.path.dirname(os.path.abspath(__file__))+'/'+filename
@@ -36,7 +36,7 @@ class DBPython2():
 		pass
 	parent = property(fset=set_parent, fget=get_parent)
 
-class SublimePeer(Peer):
+class SublimePeer(PingPong):
 	def E_get_cmd       (self, line,locals,globals,filename): return self.parent.get_cmd (line,locals,globals,filename)
 	def E_set_break     (self, filename,line, bpinfo       ): self.parent.set_break      (filename,line,bpinfo)
 	def E_clear_break   (self, filename,line               ): self.parent.clear_break    (filename,line)
