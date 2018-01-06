@@ -4,6 +4,21 @@ import traceback
 import threading
 import time
 from datetime import datetime
+from functools import reduce
+
+def compose(*funs):
+	return reduce(lambda f,g: (lambda *args: f(g(*args))), funs)
+
+def tobytes(s): return s if isinstance(s,bytes) else s.encode("UTF-8")
+
+fmt = lambda *args: ("{}$@#{}$@#{}$@#{}$@#{}$@#.".format(*args)).encode("UTF-8")
+
+class Msg(object):
+	def __init__(self, *args):
+		self.bstr = fmt(*args) if len(args) == 5 else tobytes(args[0])
+		self.fields = self.bstr.split(b'$@#')[:5]
+		self.QA, self.sig, self.fun, self.res, self.ex = self.fields
+		self.dQA, self.dsig, self.dfun, self.dres, self.dex = [f.decode() for f in self.fields]
 
 def create_connection(port, ip="127.0.0.1"):
 	print ("connecting",port)
@@ -152,15 +167,11 @@ class FilterStream(list): # filtering stream
 		print(id(self),"Stream __del__ed")
 
 
-fmt = lambda *args: ("{}$@#{}$@#{}$@#{}$@#{}$@#.".format(*args)).encode("UTF-8")
-
 class PingPong(object):
 	def __init__(self, port=5005, ip="127.0.0.1", create= False):
 		self.client_conn = (create_connection if create else connect)(port,ip=ip)
 		self.streamin = StreamIn(self.client_conn)
-		# self.sent = {}
 		# self.ans = Stream(lambda msg: msg.startswith(b"A"), self.streamin)
-		# self.recv = {}
 		self.questions = FilterStream(lambda msg: msg.startswith(b"Q"), self.streamin)
 		self.server_thread = threading.Thread(target=self.loop)
 		self.server_thread.start()
@@ -168,29 +179,27 @@ class PingPong(object):
 	def __getattr__(self,m):
 		def f(*args):
 			s = datetime.now().microsecond
-			msg = fmt('Q',s, m, json.dumps(args), None)
-			QA, this_sig,this_fun,this_res,this_ex,_ = msg.split(b'$@#')
-			# self.sent.update({this_sig+this_fun: msg})
-			self.client_conn.send(msg)
-			print("__getattr__ sent", msg)
-			key = b'$@#'.join([b"A", this_sig, this_fun]) #b'A'+this_sig+this_fun
-			ans = FilterStream(lambda msg: msg.startswith(key), self.streamin)
+			msg = Msg('Q',s, m, json.dumps(args), None)
+			self.client_conn.send(msg.bstr)
+			print("__getattr__ sent", msg.bstr)
+			# key = b'$@#'.join([b"A", msg.sig, msg.fun]) #b'A'+msg.sig+msg.fun
+			pred = compose(lambda m: m.QA == b"A" and m.sig==msg.sig and m.fun==msg.fun, Msg)
+			ans = FilterStream(pred, self.streamin)
 			while not ans: time.sleep(.05)
 			print ("ans:", ans)
-			QA,sig,fun,res,ex,_ = ans.pop(0).split(b'$@#')
 			# ans.stop() # ans doesn't seem to get deleted, why? loop running?
-			return res
+			return Msg(ans.pop(0)).res
 		return f
 	def __getitem__(self,m):
-		QA, sig,fun,res,ex,_ = m.decode().split('$@#')
+		m = Msg(m)
 		print ("__getitem__",m)
 		ret,ex = None,None
 		try:
-			ret = eval("self."+fun)(*json.loads(res))
+			ret = eval("self."+m.dfun)(*json.loads(m.dres))
 		except Exception as e:
 			traceback.print_exc()
 			ex  = e
-		return fmt('A', sig, fun, ret, ex)
+		return fmt('A', m.dsig, m.dfun, ret, ex)
 	def __call__(self):
 		while not self.questions: time.sleep(.05)
 		msg = self.questions.pop(0)
