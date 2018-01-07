@@ -11,12 +11,12 @@ def compose(*funs):
 
 def tobytes(s): return s if isinstance(s,bytes) else s.encode("UTF-8")
 
-fmt = lambda *args: ("{}$@#{}$@#{}$@#{}$@#{}$@#.".format(*args)).encode("UTF-8")
-
 class Msg(object):
 	def __init__(self, *args):
-		self.bstr = fmt(*args) if len(args) == 5 else tobytes(args[0])
-		self.fields = self.bstr.split(b'$@#')[:5]
+		formt = lambda *args: ("{}$@#{}$@#{}$@#{}$@#{}$@#.".format(*args)).encode("UTF-8")
+		parse = lambda s: s.split(b'$@#')[:5]
+		self.bstr = formt(*args) if len(args) == 5 else tobytes(args[0])
+		self.fields = parse(self.bstr)
 		self.QA, self.sig, self.fun, self.res, self.ex = self.fields
 		self.dQA, self.dsig, self.dfun, self.dres, self.dex = [f.decode() for f in self.fields]
 
@@ -179,20 +179,15 @@ class PingPong(Stream):
 		return f
 	def ans(self,m):
 		m = Msg(m)
-		print ("__getitem__",m)
 		ret,ex = None,None
 		try:
 			ret = eval("self."+m.dfun)(*json.loads(m.dres))
 		except Exception as e:
 			traceback.print_exc()
 			ex  = e
-		return fmt('A', m.dsig, m.dfun, ret, ex)
+		return Msg('A', m.dsig, m.dfun, ret, ex).bstr
 	def do(self, questions):
-		while not questions: time.sleep(.05)
-		msg = questions.pop(0)
-		print("__call__ recv",msg)
-		ans = self.ans(msg)
-		self.client_conn.send(ans)
-		print("__call__ sent",ans)
+		if questions:
+			self.client_conn.send(self.ans(questions.pop(0)))
 	def end(self):
 		self.client_conn.close()
