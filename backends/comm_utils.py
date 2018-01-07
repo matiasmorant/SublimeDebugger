@@ -123,7 +123,7 @@ class Peer(TCPServer): # trying to deprecate
 		self.server_thread.join()
 
 
-class StreamList(list):
+class Stream(object):
 	def __init__(self, *args):
 		self.args =  args
 		self.running = True
@@ -147,27 +147,24 @@ class StreamList(list):
 	def do (self,*args): pass
 	def end(self,*args): pass
 
-class StreamIn(StreamList):
+class StreamIn(Stream,list):
 	def do(self, connection):
 		self.append(recv_message(connection).encode("UTF-8"))
 	def end(self, connection):
 		connection.close()
 	
-class FilterStream(StreamList): # filtering stream
+class FilterStream(Stream,list): # filtering stream
 	def do(self, f, stream):
 		match = list(filter(f, stream)) # doesn't work without "list". why??
 		self.extend(match)
 		for m in match: stream.remove(m)
 
 
-class PingPong(object):
+class PingPong(Stream):
 	def __init__(self, port=5005, ip="127.0.0.1", create= False):
 		self.client_conn = (create_connection if create else connect)(port,ip=ip)
 		self.streamin = StreamIn(self.client_conn)
-		self.questions = FilterStream(lambda msg: msg.startswith(b"Q"), self.streamin)
-		self.server_thread = threading.Thread(target=self.loop)
-		self.server_thread.start()
-		time.sleep(.2)
+		super(PingPong, self).__init__(FilterStream(lambda msg: msg.startswith(b"Q"), self.streamin))
 	def __getattr__(self,m):
 		def f(*args):
 			msg = Msg('Q',datetime.now().microsecond, m, json.dumps(args), None)
@@ -180,7 +177,7 @@ class PingPong(object):
 			# ans.stop() # ans doesn't seem to get deleted, why? loop running?
 			return Msg(ans.pop(0)).res
 		return f
-	def __getitem__(self,m):
+	def ans(self,m):
 		m = Msg(m)
 		print ("__getitem__",m)
 		ret,ex = None,None
@@ -190,20 +187,12 @@ class PingPong(object):
 			traceback.print_exc()
 			ex  = e
 		return fmt('A', m.dsig, m.dfun, ret, ex)
-	def __call__(self):
-		while not self.questions: time.sleep(.05)
-		msg = self.questions.pop(0)
+	def do(self, questions):
+		while not questions: time.sleep(.05)
+		msg = questions.pop(0)
 		print("__call__ recv",msg)
-		# QA,sig,fun,res,ex,_ = msg.split(b'$@#')
-		ans = self[msg]
+		ans = self.ans(msg)
 		self.client_conn.send(ans)
 		print("__call__ sent",ans)
-	def loop(self):
-		try:
-			while True: self()
-		except Exception as e:
-			traceback.print_exc()
-			print ("connection down",e)
+	def end(self):
 		self.client_conn.close()
-	def __del__(self):
-		self.server_thread.join()
