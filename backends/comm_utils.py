@@ -20,6 +20,11 @@ class Msg(object):
 		self.QA, self.sig, self.fun, self.res, self.ex = self.fields
 		self.dQA, self.dsig, self.dfun, self.dres, self.dex = [f.decode() for f in self.fields]
 
+def is_QA_pair(m1, m2):
+	return {m1.QA, m2.QA} == {b"Q",b"A"} and\
+				   m1.sig == m2.sig      and\
+				   m1.fun == m2.fun
+
 def create_connection(port, ip="127.0.0.1"):
 	print ("connecting",port)
 	TCP_IP, TCP_PORT = ip, port
@@ -121,23 +126,27 @@ class Peer(TCPServer): # trying to deprecate
 class StreamIn(list):
 	def __init__(self, connection):
 		self.connection =  connection
+		self.running = True
 		self.thread = threading.Thread(target=self.loop)
 		self.thread.start()
 		time.sleep(.2)
 	def loop(self):
 		try:
-			while True:
+			while self.running:
 				msg = recv_message(self.connection).encode("UTF-8")
 				self.append(msg)
-				print("StreamIn is:",self)
+				# print("StreamIn is:",self)
 				time.sleep(.05)
 		except Exception as e:
 			traceback.print_exc()
 			print ("connection down",e)
 		self.connection.close()
-	def __del__(self):
+	def stop(self):
+		self.running = False
 		self.thread.join()
-
+	def __del__(self):
+		self.running = False
+		self.thread.join()
 
 class FilterStream(list): # filtering stream
 	def __init__(self, f, stream):
@@ -171,22 +180,19 @@ class PingPong(object):
 	def __init__(self, port=5005, ip="127.0.0.1", create= False):
 		self.client_conn = (create_connection if create else connect)(port,ip=ip)
 		self.streamin = StreamIn(self.client_conn)
-		# self.ans = Stream(lambda msg: msg.startswith(b"A"), self.streamin)
 		self.questions = FilterStream(lambda msg: msg.startswith(b"Q"), self.streamin)
 		self.server_thread = threading.Thread(target=self.loop)
 		self.server_thread.start()
 		time.sleep(.2)
 	def __getattr__(self,m):
 		def f(*args):
-			s = datetime.now().microsecond
-			msg = Msg('Q',s, m, json.dumps(args), None)
+			msg = Msg('Q',datetime.now().microsecond, m, json.dumps(args), None)
 			self.client_conn.send(msg.bstr)
-			print("__getattr__ sent", msg.bstr)
-			# key = b'$@#'.join([b"A", msg.sig, msg.fun]) #b'A'+msg.sig+msg.fun
-			pred = compose(lambda m: m.QA == b"A" and m.sig==msg.sig and m.fun==msg.fun, Msg)
+			# print("__getattr__ sent", msg.bstr)
+			pred = compose(lambda m: is_QA_pair(m,msg), Msg)
 			ans = FilterStream(pred, self.streamin)
 			while not ans: time.sleep(.05)
-			print ("ans:", ans)
+			# print ("ans:", ans)
 			# ans.stop() # ans doesn't seem to get deleted, why? loop running?
 			return Msg(ans.pop(0)).res
 		return f
