@@ -1,20 +1,24 @@
+from .python3s_backend import DBPython3S
 import threading
 import time
 import subprocess
 import os
-from .comm_utils import PingPong # Peer
+from .comm_utils import PingPong #Peer
 import json
+
+def Client(lang):
+	return DB(lang) if lang != "python3s" else DBPython3S()
 
 in_this_folder = lambda filename: os.path.dirname(os.path.abspath(__file__))+'/'+filename
 
-class DBPython3():
-	def __init__(self):
+class DB():
+	def __init__(self, lang):
 		try:
 			cmds = json.load(open(in_this_folder("../SublimeDebugger.sublime-settings")))
 		except Exception as e:
 			print(e)
 			print("SublimeDebugger.sublime-settings not found")
-		self.sp = subprocess.Popen([cmds["python3"],os.path.dirname(__file__)+"/dbpy3_server.py"])
+		self.sp = subprocess.Popen([cmds[lang],os.path.dirname(__file__)+"/"+lang+"_server.py"])
 		self.breakpoints = {}
 		time.sleep(.2)
 		self.peer = SublimePeer()

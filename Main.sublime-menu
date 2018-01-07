@@ -16,9 +16,9 @@
                     "caption": "Set Language",
                     "children":
                     [
-                        {"caption": "Python2"                   , "command": "language","args":{"lang":"Python2" },"checkbox":true},
-                        {"caption": "Python3"                   , "command": "language","args":{"lang":"Python3" },"checkbox":true},
-                        {"caption": "Python3 (Sublime built-in)", "command": "language","args":{"lang":"Python3S"},"checkbox":true}
+                        {"caption": "Python2"                   , "command": "language","args":{"lang":"python2" },"checkbox":true},
+                        {"caption": "Python3"                   , "command": "language","args":{"lang":"python3" },"checkbox":true},
+                        {"caption": "Python3 (Sublime built-in)", "command": "language","args":{"lang":"python3s"},"checkbox":true}
                     ]
                 },
                 

@@ -1,17 +1,15 @@
 import sublime
 import sublime_plugin
 import threading
-from .backends import dbPython2
-from .backends import dbPython3
-from .backends import dbPython3S
+from .backends import db
 from contextlib import contextmanager
 from time import sleep
 from copy import deepcopy
 from os.path import realpath
 
 breakpoints = {}
-curlang = "Python3S"
-DB = dbPython3S.DBPython3S()
+curlang = "python3s"
+DB = db.Client(curlang)
 
 
 class languageCommand(sublime_plugin.WindowCommand):
@@ -20,7 +18,7 @@ class languageCommand(sublime_plugin.WindowCommand):
         if lang == curlang:
             return
         try:
-            DB = eval("db{0}.DB{0}()".format(lang), globals(), locals())
+            DB = db.Client(lang)
             sublime.status_message("language: " + lang)
             print("language:", lang)
             curlang = lang

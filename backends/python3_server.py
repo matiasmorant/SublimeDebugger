@@ -1,9 +1,9 @@
-from dbpy2 import MyDB
+from python3_backend import MyDB
 
 ##############
 import threading
 
-from comm_utils import PingPong #Peer
+from comm_utils import PingPong # Peer
 
 DB = MyDB()
 
