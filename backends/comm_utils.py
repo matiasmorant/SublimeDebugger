@@ -123,9 +123,9 @@ class Peer(TCPServer): # trying to deprecate
 		self.server_thread.join()
 
 
-class StreamIn(list):
-	def __init__(self, connection):
-		self.connection =  connection
+class StreamList(list):
+	def __init__(self, *args):
+		self.args =  args
 		self.running = True
 		self.thread = threading.Thread(target=self.loop)
 		self.thread.start()
@@ -133,47 +133,31 @@ class StreamIn(list):
 	def loop(self):
 		try:
 			while self.running:
-				msg = recv_message(self.connection).encode("UTF-8")
-				self.append(msg)
-				# print("StreamIn is:",self)
+				self.do(*self.args)
 				time.sleep(.05)
 		except Exception as e:
 			traceback.print_exc()
-			print ("connection down",e)
-		self.connection.close()
+		self.end(*self.args)
 	def stop(self):
 		self.running = False
 		self.thread.join()
 	def __del__(self):
 		self.running = False
 		self.thread.join()
+	def do (self,*args): pass
+	def end(self,*args): pass
 
-class FilterStream(list): # filtering stream
-	def __init__(self, f, stream):
-		self.f =  f
-		self.stream = stream
-		self.running = True
-		self.thread = threading.Thread(target=self.loop)
-		self.thread.start()
-		print(id(self),"__init__ed")
-	def loop(self):
-		print(id(self),"entered loop",self.running)
-		try:
-			while self.running:
-				match = list(filter(self.f, self.stream)) # doesn't work without "list". why??
-				self.extend(match)
-				for m in match: self.stream.remove(m)
-				time.sleep(.05)
-		except Exception as e:
-			traceback.print_exc()
-			print ("connection down ?",e)
-	def stop(self):
-		self.running = False
-		self.thread.join()
-	def __del__(self):
-		self.running = False
-		self.thread.join()
-		print(id(self),"Stream __del__ed")
+class StreamIn(StreamList):
+	def do(self, connection):
+		self.append(recv_message(connection).encode("UTF-8"))
+	def end(self, connection):
+		connection.close()
+	
+class FilterStream(StreamList): # filtering stream
+	def do(self, f, stream):
+		match = list(filter(f, stream)) # doesn't work without "list". why??
+		self.extend(match)
+		for m in match: stream.remove(m)
 
 
 class PingPong(object):
