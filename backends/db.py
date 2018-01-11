@@ -16,8 +16,8 @@ class DB():
 	def __init__(self, lang):
 		try:
 			debugger_folder = os.path.abspath(in_this_folder(".."))
-			openf = open if os.path.isdir(debugger_folder) else ZipFile(debugger_folder).open
-			settings = openf(debugger_folder+"/SublimeDebugger.sublime-settings")
+			openf = (lambda n: open(debugger_folder+n)) if os.path.isdir(debugger_folder) else ZipFile(debugger_folder).open
+			settings = openf("SublimeDebugger.sublime-settings")
 			cmds = json.load(settings)
 		except Exception as e:
 			print(e)
