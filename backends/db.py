@@ -16,9 +16,11 @@ class DB():
 	def __init__(self, lang):
 		try:
 			debugger_folder = os.path.abspath(in_this_folder(".."))
-			openf = (lambda n: open(debugger_folder+n)) if os.path.isdir(debugger_folder) else ZipFile(debugger_folder).open
-			settings = openf("SublimeDebugger.sublime-settings")
-			cmds = json.load(settings)
+			isdir = os.path.isdir(debugger_folder)
+			filename = "SublimeDebugger.sublime-settings"
+			file = open(debugger_folder+"/"+filename) if isdir else ZipFile(debugger_folder).open(filename)
+			settings = file.read() if isdir else file.read().decode()
+			cmds = json.loads(settings)
 		except Exception as e:
 			print(e)
 			print("SublimeDebugger.sublime-settings not found")
