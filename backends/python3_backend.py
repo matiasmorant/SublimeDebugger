@@ -216,7 +216,7 @@ class MyDB(bdb.Bdb):
 				ret = repr(eval(expr, self.curframe.f_globals, self.curframe.f_locals))
 			return ret
 		except Exception as e:
-			return e
+			return repr(e)
 	def toggle_break(self,filename,line):
 		if not filename in self.breakpoints: self.breakpoints.update({filename:{}})
 		bps = self.breakpoints[filename]
