@@ -5,6 +5,7 @@ import subprocess
 import os
 from .comm_utils import PingPong #Peer
 import json
+from zipfile import ZipFile
 
 def Client(lang):
 	return DB(lang) if lang != "python3s" else DBPython3S()
@@ -14,7 +15,10 @@ in_this_folder = lambda filename: os.path.dirname(os.path.abspath(__file__))+'/'
 class DB():
 	def __init__(self, lang):
 		try:
-			cmds = json.load(open(in_this_folder("../SublimeDebugger.sublime-settings")))
+			debugger_folder = os.path.abspath(in_this_folder(".."))
+			openf = open if os.path.isdir(debugger_folder) else ZipFile(debugger_folder).open
+			settings = openf(debugger_folder+"/SublimeDebugger.sublime-settings")
+			cmds = json.load(settings)
 		except Exception as e:
 			print(e)
 			print("SublimeDebugger.sublime-settings not found")
