@@ -10,21 +10,23 @@ from zipfile import ZipFile
 def Client(lang):
 	return DB(lang) if lang != "python3s" else DBPython3S()
 
-in_this_folder = lambda filename: os.path.dirname(os.path.abspath(__file__))+'/'+filename
+in_this_folder = lambda filename: os.path.abspath(os.path.dirname(os.path.abspath(__file__))+'/'+filename)
 
 class DB():
 	def __init__(self, lang):
+		this = in_this_folder("..")
+		alt  = in_this_folder("../../SublimeDebugger")
+		isdir = os.path.isdir(this)
+		if not isdir:
+			ZipFile(this).extractall(path=alt)
+		debugger_folder = this if isdir else alt
 		try:
-			debugger_folder = os.path.abspath(in_this_folder(".."))
-			isdir = os.path.isdir(debugger_folder)
-			filename = "SublimeDebugger.sublime-settings"
-			file = open(debugger_folder+"/"+filename) if isdir else ZipFile(debugger_folder).open(filename)
-			settings = file.read() if isdir else file.read().decode()
-			cmds = json.loads(settings)
+			cmds = json.load(open(debugger_folder+"/SublimeDebugger.sublime-settings"))
 		except Exception as e:
 			print(e)
 			print("SublimeDebugger.sublime-settings not found")
-		self.sp = subprocess.Popen([cmds[lang],os.path.dirname(__file__)+"/"+lang+"_server.py"])
+		# print(cmds[lang], debugger_folder+"/backends/"+lang+"_server.py", os.path.isfile(debugger_folder+"/backends/"+lang+"_server.py"))
+		self.sp = subprocess.Popen([cmds[lang], debugger_folder+"/backends/"+lang+"_server.py"])
 		self.breakpoints = {}
 		time.sleep(.2)
 		self.peer = SublimePeer()
@@ -32,7 +34,6 @@ class DB():
 		self.clear_break  = self.peer.D_clear_break
 		self.toggle_break = self.peer.D_toggle_break
 		self.tryeval      = self.peer.D_tryeval
-		print("fully connected")
 	def runscript(self, filename):
 		self.peer.D_set_breakpoints(self.breakpoints)
 		self.peer.D_runscript(filename)

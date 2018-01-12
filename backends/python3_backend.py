@@ -73,7 +73,7 @@ class MyDB(bdb.Bdb):
 		import __main__
 		self.main_debug = __main__.__dict__.copy()
 		with self.exit__main__(self.main_copy):
-			cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame)).decode()
+			cmd = self.parent.E_get_cmd(line(frame),ls,gs, filename(frame))
 		cmd = cmd or (self.last_cmd if hasattr(self, 'last_cmd') else '')
 		self.last_cmd = cmd
 		cmdl = (cmd.split() or [''])
