@@ -25,6 +25,21 @@ def is_QA_pair(m1, m2):
 	               m1.sig == m2.sig      and\
 	               m1.fun == m2.fun
 	
+def retry(f, times, sleep=0):
+	for _ in range(times): #try to connect 10 times
+		try:
+			f()
+			return True
+		except:
+			time.sleep(sleep)
+	return False
+
+def connect(port, ip="127.0.0.1"):
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	success = retry(lambda: sock.connect((ip, port)), 10, sleep=.2)
+	if not success: print ("doesn't want to connect", port)
+	return sock
+
 def create_connection(port, ip="127.0.0.1"):
 	print ("connecting",port)
 	TCP_IP, TCP_PORT = ip, port
@@ -36,31 +51,6 @@ def create_connection(port, ip="127.0.0.1"):
 	s.close()
 	print ("connected", addr)
 	return conn
-
-def connect(port, ip="127.0.0.1"):
-	# def tryevalE(expr):
-	# 	try:
-	# 		eval(expr)
-	# 		return True
-	# 	except:
-	# 		return False
-	# sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	# for _ in range(10): #try to connect 10 times
-	# 	if tryeval('sock.connect(("127.0.0.1", port))') : break
-	# 	else: print ("doesn't want to connect",_)
-	# return sock
-
-	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	connected = False
-	for _ in range(10): #try to connect 10 times
-		try:
-			sock.connect((ip, port))
-			connected = True
-		except:
-			connected = False
-		if connected : break
-		else: print ("doesn't want to connect",_,port)
-	return sock
 
 def recv_message(conn, BUFFER_SIZE = 1024):
 	data = ''

@@ -28,7 +28,6 @@ class DB():
 		# print(cmds[lang], debugger_folder+"/backends/"+lang+"_server.py", os.path.isfile(debugger_folder+"/backends/"+lang+"_server.py"))
 		self.sp = subprocess.Popen([cmds[lang], debugger_folder+"/backends/"+lang+"_server.py"])
 		self.breakpoints = {}
-		time.sleep(.5)
 		self.peer = SublimePeer()
 		self.set_break    = self.peer.D_set_break
 		self.clear_break  = self.peer.D_clear_break
