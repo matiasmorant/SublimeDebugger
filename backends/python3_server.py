@@ -10,7 +10,7 @@ DB = MyDB()
 class DebuggerPeer(PingPong):
 	def D_set_breakpoints(self, bps          ):
 		for ldict in bps.values():
-			for k in ldict.keys():
+			for k in list(ldict):
 				ldict[int(k)] = ldict[k]
 				ldict.pop(k)
 		DB.breakpoints = bps
